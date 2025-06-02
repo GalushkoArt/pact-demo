@@ -1,0 +1,83 @@
+buildscript {
+    dependencies {
+        classpath('com.fasterxml.jackson.dataformat:jackson-dataformat-yaml') {
+            version { strictly '2.15.3' }
+        }
+    }
+}
+
+plugins {
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+    id 'au.com.dius.pact' version '4.6.17'
+    id 'org.openapi.generator' version '7.13.0'
+}
+
+version = "0.1.0.1"
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "$rootDir/oas/openapi.yaml"
+    ignoreFileOverride = "$rootDir/.openapi-generator-java-sources.ignore"
+    outputDir = "$buildDir/generated"
+    apiPackage = "org.openapi.example.api"
+    apiPackage = "com.example.priceservice.client.api"
+    modelPackage = "com.example.priceservice.client.api.model"
+    configOptions = [
+            dateLibrary: "java8",
+            library: "restclient",
+            openApiNullable: "false",
+            generateBuilders: "true",
+    ]
+}
+
+// Add generated sources to the source set
+sourceSets {
+    main {
+        java {
+            srcDir "$buildDir/generated/src/main/java"
+        }
+    }
+}
+
+// Make sure the OpenAPI code is generated before compiling
+compileJava.dependsOn('openApiGenerate')
+
+// Ensure generated sources are available during compilation
+tasks.named('compileJava') {
+    options.compilerArgs << '-Xlint:unchecked'
+    doFirst {
+        // Make sure the directory exists
+        file("$buildDir/generated/src/main/java").mkdirs()
+    }
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    // OpenAPI generated code dependencies
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.15'
+    implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.0'
+    
+    // Pact for consumer testing
+    testImplementation 'au.com.dius.pact.consumer:junit5:4.6.17'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+pact {
+    publish {
+        pactBrokerUrl = 'http://localhost:9292'
+        pactBrokerUsername = 'pact'
+        pactBrokerPassword = 'pact'
+        tags = ['dev', 'test']
+        version = project.version
+    }
+}

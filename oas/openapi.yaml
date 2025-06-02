@@ -1,0 +1,248 @@
+openapi: 3.0.3
+info:
+  title: Price Service API
+  description: REST API for financial instrument price service
+  version: v1.0.0
+  contact:
+    name: Example Team
+    email: team@example.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - basicAuth: []
+
+paths:
+  /prices:
+    get:
+      tags:
+        - Prices
+      summary: Get all prices
+      description: Retrieves all available instrument prices
+      operationId: getAllPrices
+      security: []
+      responses:
+        '200':
+          description: Prices retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PriceDto'
+
+  /prices/{instrumentId}:
+    get:
+      tags:
+        - Prices
+      summary: Get price by instrument ID
+      description: Retrieves the price for a specific instrument
+      operationId: getPrice
+      security: []
+      parameters:
+        - name: instrumentId
+          in: path
+          description: Instrument ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Price found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceDto'
+        '404':
+          description: Price not found
+    
+    post:
+      tags:
+        - Prices
+      summary: Create or update price
+      description: Creates or updates the price for a specific instrument. Requires authentication.
+      operationId: savePrice
+      security:
+        - basicAuth: []
+      parameters:
+        - name: instrumentId
+          in: path
+          description: Instrument ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Price information
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceDto'
+      responses:
+        '200':
+          description: Price saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceDto'
+        '401':
+          description: Unauthorized - authentication required
+    
+    delete:
+      tags:
+        - Prices
+      summary: Delete price
+      description: Deletes the price for a specific instrument. Requires authentication.
+      operationId: deletePrice
+      security:
+        - basicAuth: []
+      parameters:
+        - name: instrumentId
+          in: path
+          description: Instrument ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Price deleted successfully
+        '404':
+          description: Price not found
+        '401':
+          description: Unauthorized - authentication required
+
+  /orderbook/{instrumentId}:
+    get:
+      tags:
+        - Order Book
+      summary: Get order book by instrument ID
+      description: Retrieves the order book for a specific instrument
+      operationId: getOrderBook
+      security: []
+      parameters:
+        - name: instrumentId
+          in: path
+          description: Instrument ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderBookDto'
+        '404':
+          description: Order book not found
+    
+    post:
+      tags:
+        - Order Book
+      summary: Create or update order book
+      description: Creates or updates the order book for a specific instrument. Requires authentication.
+      operationId: saveOrderBook
+      security:
+        - basicAuth: []
+      parameters:
+        - name: instrumentId
+          in: path
+          description: Instrument ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Order book information
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderBookDto'
+      responses:
+        '200':
+          description: Order book saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderBookDto'
+        '401':
+          description: Unauthorized - authentication required
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  
+  schemas:
+    PriceDto:
+      type: object
+      required:
+        - instrumentId
+        - bidPrice
+        - askPrice
+        - lastUpdated
+      properties:
+        instrumentId:
+          type: string
+          description: Identifier for the financial instrument
+        bidPrice:
+          type: number
+          description: The bid price
+          minimum: 0
+        askPrice:
+          type: number
+          description: The ask price
+          minimum: 0
+        lastUpdated:
+          type: string
+          format: date-time
+          description: The timestamp when the price was last updated
+          example: "2023-01-01T12:00:00.000"
+    
+    OrderDto:
+      type: object
+      required:
+        - price
+        - volume
+      properties:
+        price:
+          type: number
+          description: The price of the order
+          minimum: 0
+        volume:
+          type: number
+          description: The volume of the order
+          minimum: 0
+    
+    OrderBookDto:
+      type: object
+      required:
+        - instrumentId
+        - bidOrders
+        - askOrders
+        - lastUpdated
+      properties:
+        instrumentId:
+          type: string
+          description: Identifier for the financial instrument
+        bidOrders:
+          type: array
+          description: List of bid orders
+          items:
+            $ref: '#/components/schemas/OrderDto'
+        askOrders:
+          type: array
+          description: List of ask orders
+          items:
+            $ref: '#/components/schemas/OrderDto'
+        lastUpdated:
+          type: string
+          format: date-time
+          description: The timestamp when the order book was last updated
+          example: "2023-01-01T12:00:00.000"

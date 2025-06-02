@@ -1,0 +1,41 @@
+# GitLab CI Configuration
+stages:
+  - test
+  - publish
+  - verify
+
+variables:
+  PACT_BROKER_URL: "http://pact-broker:9292"
+  PACT_BROKER_USERNAME: "pact"
+  PACT_BROKER_PASSWORD: "pact"
+
+services:
+  - name: postgres:14
+    alias: postgres
+  - name: pactfoundation/pact-broker:2.107.0.1
+    alias: pact-broker
+    variables:
+      PACT_BROKER_DATABASE_URL: "postgres://postgres:postgres@postgres/postgres"
+      PACT_BROKER_BASIC_AUTH_USERNAME: "pact"
+      PACT_BROKER_BASIC_AUTH_PASSWORD: "pact"
+      PACT_BROKER_PORT: "9292"
+      PACT_BROKER_ALLOW_PUBLIC_READ: "true"
+
+consumer_test:
+  stage: test
+  script:
+    - ./gradlew :price-service-consumer:clean :price-service-consumer:test
+
+publish_pacts:
+  stage: publish
+  script:
+    - ./gradlew :price-service-consumer:pactPublish
+  dependencies:
+    - consumer_test
+
+provider_verify:
+  stage: verify
+  script:
+    - ./gradlew :price-service-provider:clean :price-service-provider:test
+  dependencies:
+    - publish_pacts

@@ -4,25 +4,21 @@ This project demonstrates Pact-based contract testing in a microservices archite
 
 ## Project Overview
 
+This is a demo project showcasing how to work with Pact for contract testing between microservices.
+The project can be run locally with Docker via docker-compose, making it easy to set up and experiment with.
+
+The project uses code generation based on the Open API specification:
+- The provider uses it for controller generation
+- The consumers use it for client generation
+
 The project consists of the following modules:
 
-- **price-service-api**: Shared API definitions (DTOs and interfaces)
-- **price-service-provider**: Provider implementation with Spring Boot, PostgreSQL, and authentication
-- **price-service-consumer**: Consumer implementation with contract tests
+- **price-service-provider**: A backend service which is a Pact provider service
+- **price-service-consumer**: A client service which is a Pact consumer service
+- **new-price-service-consumer**: Another client service which is a Pact consumer service
 - **pact-broker**: Docker Compose setup for the Pact Broker
 
-## Architecture
-
-The project follows Hexagonal Architecture (Ports and Adapters) with clear separation between:
-
-- **Core Domain**: Business logic in the center
-- **Ports**: Interfaces defining how the core interacts with external systems
-- **Adapters**: Implementations connecting to external systems
-
-This architecture ensures:
-- Clear separation of business logic from external concerns
-- Testability of core domain logic in isolation
-- Flexibility to change external dependencies without affecting core logic
+Note that POST and DELETE methods of endpoints are protected with basic authentication.
 
 ## Prerequisites
 
@@ -42,7 +38,10 @@ cd pact-demo
 ### 2. Start PostgreSQL and Pact Broker
 
 ```bash
-# Start PostgreSQL and Pact Broker
+# Using the Makefile
+make docker-start
+
+# Or directly with docker-compose
 docker-compose up -d
 ```
 
@@ -55,42 +54,36 @@ The Pact Broker will be available at http://localhost:9292 with the following cr
 - Username: `pact`
 - Password: `pact`
 
-### 3. Run the Consumer Tests and Publish Contracts
+### 3. Run the Complete Workflow
+
+You can run the complete workflow demonstration as described in the "Contract Testing Workflow Demonstration" section:
 
 ```bash
-./gradlew :price-service-consumer:clean :price-service-consumer:test :price-service-consumer:pactPublish
+# Run the full workflow
+make full-workflow
 ```
 
-This will:
-- Run the consumer tests
-- Generate Pact contract files
-- Publish the contracts to the Pact Broker
+Or you can run each step individually as described in the workflow section.
 
-### 4. Run the Provider and Verify Contracts
-
-```bash
-./gradlew :price-service-provider:clean :price-service-provider:test
-```
-
-This will:
-- Start the provider service
-- Fetch contracts from the Pact Broker
-- Verify that the provider can fulfill the contracts
-
-### 5. Run the Complete Build
+### 4. Run the Complete Build
 
 ```bash
 ./gradlew clean build
 ```
 
+This command might fail if no consumer test runs before provider tests.
+
 ## Module Details
 
-### price-service-api
+### Code Generation with Open API
 
-This module contains the shared API definitions:
+All modules in this project use code generation based on the Open API specification:
 
-- **DTOs**: Data Transfer Objects for communication between services
-- **Service Interfaces**: Contracts defining the service operations
+- The specification is defined in the `oas/openapi.yaml` file
+- The provider uses it to generate controller interfaces
+- The consumers use it to generate client code
+
+This approach ensures that all services are working with the same API contract.
 
 ### price-service-provider
 
@@ -100,18 +93,8 @@ The provider implements a REST API for a price service with the following endpoi
 - `GET /prices/{instrumentId}`: Retrieve price for a specific instrument
 - `POST /prices/{instrumentId}`: Create or update price for a specific instrument (requires authentication)
 - `DELETE /prices/{instrumentId}`: Delete price for a specific instrument (requires authentication)
-- `GET /orderbook/{instrumentId}`: Retrieve order book for a specific instrument
-- `POST /orderbook/{instrumentId}`: Create or update order book for a specific instrument (requires authentication)
-
-The provider includes:
-- PostgreSQL database integration with Flyway migrations
-- Authentication for POST and DELETE operations
-- OpenAPI documentation:
-  - Interactive UI at `/swagger-ui.html`
-  - JSON specification at `/v3/api-docs`
-  - YAML specification at `/v3/api-docs.yaml`
-  - Raw specification file at `src/main/resources/openapi.yaml`
-- Hexagonal architecture with domain, ports, and adapters
+- `GET /orderbook/{instrumentId}`: Retrieve an order book for a specific instrument
+- `POST /orderbook/{instrumentId}`: Create or update an order book for a specific instrument (requires authentication)
 
 #### Authentication
 
@@ -145,6 +128,14 @@ The consumer implements a client for the price service with:
 - Pact contract tests defining the expected behavior
 - Service layer for business logic
 
+The consumer tests can be run with:
+
+```bash
+make consumer-tests
+```
+
+This will generate Pact contracts in [price-service-consumer/build/pacts/](price-service-consumer/build/pacts/) and publish them to the Pact Broker.
+
 #### Consumer Configuration
 
 The consumer configuration can be modified in `application.properties`:
@@ -155,6 +146,23 @@ price-service.username=admin
 price-service.password=password
 ```
 
+### new-price-service-consumer
+
+This is another consumer implementation that also interacts with the price service:
+
+- Uses the same Open API specification for client generation
+- Implements its own set of Pact contract tests
+- Demonstrates how multiple consumers can interact with the same provider
+- Shows how Pact can manage compatibility between multiple consumers and a provider
+
+The new consumer tests can be run with:
+
+```bash
+make new-consumer-tests
+```
+
+This will generate Pact contracts in [new-price-service-consumer/build/pacts/](new-price-service-consumer/build/pacts/) and publish them to the Pact Broker.
+
 ### pact-broker
 
 Docker Compose setup for the Pact Broker, including:
@@ -162,15 +170,139 @@ Docker Compose setup for the Pact Broker, including:
 - Pact Broker service
 - PostgreSQL database for storing contracts
 
-## Contract Testing Workflow
+## Contract Testing Workflow Demonstration
 
-1. **Consumer Defines Contracts**: The consumer creates Pact contract tests that define its expectations of the provider.
+This section demonstrates a complete workflow using the commands from the Makefile. Follow these steps to understand how Pact contract testing works in practice.
 
-2. **Publish Contracts**: The contracts are published to the Pact Broker.
+### 1. Start the Containers
 
-3. **Provider Verifies Contracts**: The provider verifies that it can fulfill the contracts.
+First, start the Docker containers for PostgreSQL and Pact Broker:
 
-4. **CI/CD Integration**: The workflow is integrated into CI/CD pipelines to ensure contracts are always verified.
+```bash
+make docker-start
+```
+
+This command starts the containers in detached mode and waits for them to be ready.
+
+### 2. Run Consumer Tests and Create Pacts
+
+Run the tests for the first consumer and publish the generated Pact contracts to the broker:
+
+```bash
+make consumer-tests
+```
+
+This will:
+- Run the tests for price-service-consumer
+- Generate Pact contract files (located in [price-service-consumer/build/pacts/](price-service-consumer/build/pacts/))
+- Publish the contracts to the Pact Broker
+
+### 3. Check the Pact Broker
+
+Open the Pact Broker UI to see the published contracts:
+[http://localhost:9292/](http://localhost:9292/)
+
+You should see the contracts between price-service-consumer and price-service-provider.
+
+### 4. Verify Provider Against Pacts
+
+Run the provider verification tests to ensure the provider can fulfill the contracts:
+
+```bash
+make pact-tests
+```
+
+This command runs the JUnit5 tests in the price-service-provider module
+that verifies the provider against the published Pact contracts.
+
+### 5. Check the Pact Broker Again
+
+Refresh the Pact Broker UI to see the verification results:
+[http://localhost:9292/](http://localhost:9292/)
+
+You should now see that the contracts have been verified.
+
+### 6. Check Deployment Compatibility
+
+Check if the provider can be safely deployed:
+
+```bash
+make canideploy-all
+```
+
+This command checks if both price-service-provider-price and price-service-provider-orderbook can be deployed
+without breaking any consumer.
+Now it should say `Computer says yes \o/`.
+
+### 7. Run Tests for the New Consumer
+
+Run the tests for the new consumer and publish its contracts:
+
+```bash
+make new-consumer-tests
+```
+
+This will:
+- Run the tests for new-price-service-consumer
+- Generate Pact contract files (located in [new-price-service-consumer/build/pacts/](new-price-service-consumer/build/pacts/))
+- Publish the contracts to the Pact Broker
+
+### 8. Check Orderbook Deployment Compatibility
+
+Check if the orderbook provider can be safely deployed:
+
+```bash
+make canideploy-orderbook
+```
+
+This should pass with `Computer says yes \o/` because the new consumer doesn't use this provider.
+
+### 9. Check Price Deployment Compatibility
+
+Check if the price provider can be safely deployed:
+
+```bash
+make canideploy-price
+```
+
+This should fail with `Can you deploy? Computer says no ¯\_(ツ)_/¯` because the new consumer uses this provider and the provider hasn't verified the new contracts yet.
+
+### 10. Run Provider Tests Again
+
+Run the provider tests again:
+
+```bash
+make pact-tests
+```
+
+This will pass without verification of the new contracts because the test results are cached.
+
+### 11. Force Provider Tests
+
+Force the provider tests to run by cleaning the test results first:
+
+```bash
+make pact-tests-force
+```
+
+This will verify all contracts, including the ones from the new consumer.
+
+### 12. Check the Pact Broker Once More
+
+Refresh the Pact Broker UI again to see the updated verification results:
+[http://localhost:9292/](http://localhost:9292/)
+
+You should now see that all contracts have been verified.
+
+### 13. Check Deployment Compatibility Again
+
+Check if both providers can now be safely deployed:
+
+```bash
+make canideploy-all
+```
+
+This should now pass with `Computer says yes \o/` for both providers.
 
 ## Dynamic State Management
 
@@ -203,18 +335,17 @@ public void priceWithIdAaplExists() {
 
 ## Authentication Testing
 
-The project includes comprehensive authentication testing:
+The project includes authentication testing:
 
 - Tests for successful authentication
-- Tests for failed authentication with wrong credentials
-- Tests for malformed authentication headers
-- Tests for missing authentication
+- Tests for failed authentication (this should cover cases when credentials are missing or wrong)
 
 This ensures that the security requirements are properly verified through contracts.
 
 ## When to Use Pact vs. Other Testing
 
 - **Unit Tests**: For testing business logic in isolation
+- **Component Tests**: For testing business logic of the service with mocks and db running in docker
 - **Pact Tests**: For testing service boundaries and API contracts
 - **Integration Tests**: For testing interactions with databases and other dependencies
 - **End-to-End Tests**: For testing critical user journeys
@@ -224,58 +355,6 @@ Pact is particularly valuable when:
 - You want to detect breaking changes before deployment
 - You want to evolve your APIs with confidence
 - You want to reduce the need for end-to-end testing
-
-## CI/CD Integration
-
-### GitLab CI Example
-
-Create a `.gitlab-ci.yml` file in the root of your project:
-
-```yaml
-stages:
-  - test
-  - publish
-  - verify
-
-variables:
-  PACT_BROKER_URL: "http://pact-broker:9292"
-  PACT_BROKER_USERNAME: "pact"
-  PACT_BROKER_PASSWORD: "pact"
-  POSTGRES_USER: "postgres"
-  POSTGRES_PASSWORD: "postgres"
-  POSTGRES_DB: "priceservice"
-
-services:
-  - name: postgres:14
-    alias: postgres
-  - name: pactfoundation/pact-broker:2.107.0.1
-    alias: pact-broker
-    variables:
-      PACT_BROKER_DATABASE_URL: "postgres://postgres:postgres@postgres/postgres"
-      PACT_BROKER_BASIC_AUTH_USERNAME: "pact"
-      PACT_BROKER_BASIC_AUTH_PASSWORD: "pact"
-      PACT_BROKER_PORT: "9292"
-      PACT_BROKER_ALLOW_PUBLIC_READ: "true"
-
-consumer_test:
-  stage: test
-  script:
-    - ./gradlew :price-service-consumer:clean :price-service-consumer:test
-
-publish_pacts:
-  stage: publish
-  script:
-    - ./gradlew :price-service-consumer:pactPublish
-  dependencies:
-    - consumer_test
-
-provider_verify:
-  stage: verify
-  script:
-    - ./gradlew :price-service-provider:clean :price-service-provider:test
-  dependencies:
-    - publish_pacts
-```
 
 ## Benefits of Consumer-Driven Contracts
 
@@ -294,60 +373,3 @@ provider_verify:
 4. **Documentation as a Byproduct**:
    - Contracts serve as living documentation
    - OpenAPI integration provides additional API documentation
-
-## Troubleshooting
-
-### Database Connection Issues
-
-If you have trouble connecting to PostgreSQL:
-
-1. Ensure the PostgreSQL containers are running:
-   ```bash
-   docker ps | grep postgres
-   ```
-
-2. Check the logs:
-   ```bash
-   docker logs postgres
-   ```
-
-3. Verify the connection settings in `application.properties`
-
-### Pact Broker Connection Issues
-
-If you have trouble connecting to the Pact Broker:
-
-1. Ensure the Docker containers are running:
-   ```bash
-   docker-compose ps
-   ```
-
-2. Check the logs:
-   ```bash
-   docker-compose logs pact-broker
-   ```
-
-3. Verify the broker is accessible:
-   ```bash
-   curl -u pact:pact http://localhost:9292
-   ```
-
-### Authentication Issues
-
-If you encounter authentication problems:
-
-1. Ensure you're using the correct credentials (admin/password)
-2. Check that the Authorization header is properly formatted
-3. Verify that the consumer client is configured with the correct credentials
-
-### Test Database Issues
-
-If you encounter issues with the test database:
-
-1. Ensure the test PostgreSQL container is running on port 5433
-2. Check that the test configuration is using the correct database URL
-3. Verify that the test database is properly initialized
-
-## Conclusion
-
-This project demonstrates how to implement consumer-driven contract testing using Pact in a Java microservices environment with PostgreSQL persistence and authentication. By following the patterns and practices shown here, you can build more reliable and maintainable service integrations.

@@ -3,3 +3,11 @@ rootProject.name = 'pact-demo'
 include 'price-service-provider'
 include 'price-service-consumer'
 include 'new-price-service-consumer'
+
+buildCache {
+    local {
+        enabled = true
+        directory = file("${rootDir}/.gradle/build-cache")
+        removeUnusedEntriesAfterDays = 30
+    }
+}

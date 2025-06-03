@@ -34,6 +34,11 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Provider-side contract verification test.
  * This test verifies that the provider can fulfill the contracts defined by consumers.
+ * Pact contracts are provided to the provider from the Pact Broker.
+ * <p>
+ * Тест проверки контракта на стороне поставщика.
+ * Этот тест проверяет, что поставщик может выполнить контракты, определенные потребителями.
+ * Пакт контракты предоставляются провайдеру из Пакт Брокера.
  */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, value = {
@@ -49,14 +54,33 @@ import java.util.concurrent.locks.ReentrantLock;
 @VersionSelector
 public class PriceServiceProviderPricePactTest {
     private static final Logger log = LoggerFactory.getLogger(PriceServiceProviderPricePactTest.class);
+
     @LocalServerPort
     private int port;
+
     @Autowired
     private PriceJpaRepository priceJpaRepository;
+
+    /**
+     * Authentication credentials for secured endpoints.
+     * These match the credentials in the consumer tests.
+     * <p>
+     * Учетные данные аутентификации для защищенных конечных точек.
+     * Они соответствуют учетным данным в тестах потребителя.
+     */
     private static final String username = "admin";
     private static final String password = "password";
     private static final String AUTH_HEADER = "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
 
+    /**
+     * Defines which consumer versions to verify against.
+     * This is the best practice to ensure you're testing it against relevant consumer versions.
+     * <p>
+     * Определяет, какие версии потребителей проверять.
+     * Это лучшая практика для обеспечения тестирования против релевантных версий потребителей.
+     *
+     * @return A selector builder with configured version selectors
+     */
     @PactBrokerConsumerVersionSelectors
     public static SelectorBuilder consumerVersionSelectors() {
         return new SelectorBuilder()
@@ -65,11 +89,28 @@ public class PriceServiceProviderPricePactTest {
                 .latestTag("dev");
     }
 
+    /**
+     * Sets up the test target before each verification.
+     * <p>
+     * Настраивает целевой объект тестирования перед каждой проверкой.
+     *
+     * @param context The Pact verification context
+     */
     @BeforeEach
     void setUp(PactVerificationContext context) {
         context.setTarget(new HttpTestTarget("localhost", port));
     }
 
+    /**
+     * Template method for all Pact verifications.
+     * Handles authentication header replacement for each request.
+     * <p>
+     * Шаблонный метод для всех проверок Pact.
+     * Обрабатывает замену заголовка аутентификации для каждого запроса.
+     *
+     * @param context The verification context
+     * @param request The HTTP request being verified
+     */
     @TestTemplate
     @ExtendWith(PactVerificationInvocationContextProvider.class)
     void testTemplate(PactVerificationContext context, HttpRequest request) {
@@ -77,6 +118,15 @@ public class PriceServiceProviderPricePactTest {
         context.verifyInteraction();
     }
 
+    /**
+     * Replaces the authentication header in the request.
+     * This is the best practice for handling authentication in provider tests.
+     * <p>
+     * Заменяет заголовок аутентификации в запросе.
+     * Это лучшая практика для обработки аутентификации в тестах поставщика.
+     *
+     * @param request The HTTP request to modify
+     */
     private void replaceAuthHeader(HttpRequest request) {
         if (request.containsHeader("Authorization")) {
             request.removeHeaders("Authorization");
@@ -86,12 +136,27 @@ public class PriceServiceProviderPricePactTest {
         }
     }
 
+    /**
+     * Lock to ensure thread safety when setting up prices.
+     * <p>
+     * Блокировка для обеспечения потокобезопасности при настройке цен.
+     */
     static ReentrantLock pricesExist = new ReentrantLock();
 
+    /**
+     * Sets up the "prices exist" provider state.
+     * Creates sample price data for testing.
+     * <p>
+     * Настраивает состояние поставщика "цены существуют".
+     * Создает образцы данных о ценах для тестирования.
+     *
+     * @throws InterruptedException If the thread is interrupted while waiting for the lock
+     */
     @State(value = "prices exist", action = StateChangeAction.SETUP)
     @Transactional
     public void pricesExist() throws InterruptedException {
         // Create test data
+        // Создание тестовых данных
         if (pricesExist.tryLock(30, TimeUnit.SECONDS)) {
             try {
                 priceJpaRepository.findById("AAPL").ifPresentOrElse(
@@ -122,15 +187,26 @@ public class PriceServiceProviderPricePactTest {
         }
     }
 
+    /**
+     * Sets up the "price with ID exists" provider state.
+     * Uses dynamic state parameters for flexible testing.
+     * <p>
+     * Настраивает состояние поставщика "цена с ID существует".
+     * Использует динамические параметры состояния для гибкого тестирования.
+     *
+     * @return A map of state parameters
+     */
     @State(value = "price with ID exists", action = StateChangeAction.SETUP)
     @Transactional
     public Map<String, String> priceWithIdExists() {
         // Clear existing data for this ID
+        // Очистка существующих данных для этого ID
         var parameters = new HashMap<String, String>();
         var instrumentId = parameters.computeIfAbsent("instrumentId", id -> RandomStringUtils.secure().nextAlphanumeric(4));
         priceJpaRepository.findById(instrumentId).ifPresent(price -> priceJpaRepository.delete(price));
 
         // Create test data
+        // Создание тестовых данных
         PriceEntity apple = PriceEntity.builder()
                 .instrumentId(instrumentId)
                 .bidPrice(new BigDecimal("175.50"))
@@ -142,6 +218,15 @@ public class PriceServiceProviderPricePactTest {
         return parameters;
     }
 
+    /**
+     * Cleans up after the "price with ID exists" provider state.
+     * This is the best practice to ensure test isolation.
+     * <p>
+     * Очищает после состояния поставщика "цена с ID существует".
+     * Это лучшая практика для обеспечения изоляции тестов.
+     *
+     * @param parameters The state parameters from setup
+     */
     @State(value = "price with ID exists", action = StateChangeAction.TEARDOWN)
     @Transactional
     public void priceWithIdExistsCleanup(Map<String, String> parameters) {
@@ -149,23 +234,48 @@ public class PriceServiceProviderPricePactTest {
         Optional.ofNullable(parameters.get("instrumentId")).ifPresent(id -> priceJpaRepository.deleteById(id));
     }
 
+    /**
+     * Sets up the "price with ID UNKNOWN does not exist" provider state.
+     * Testing error scenarios is the best practice in contract testing.
+     * <p>
+     * Настраивает состояние поставщика "цена с ID UNKNOWN не существует".
+     * Тестирование сценариев ошибок - лучшая практика в контрактном тестировании.
+     */
     @State("price with ID UNKNOWN does not exist")
     @Transactional
     public void priceWithIdUnknownDoesNotExist() {
         // Ensure the price doesn't exist
+        // Убедиться, что цена не существует
         priceJpaRepository.findById("UNKNOWN").ifPresent(price -> priceJpaRepository.delete(price));
     }
 
+    /**
+     * Sets up the "price can be saved" provider state.
+     * Prepares for testing POST operations.
+     * <p>
+     * Настраивает состояние поставщика "цена может быть сохранена".
+     * Подготавливает для тестирования операций POST.
+     *
+     * @return A map of state parameters
+     */
     @State(value = "price can be saved", action = StateChangeAction.SETUP)
     @Transactional
     public Map<String, String> priceCanBeSaved() {
         // No specific setup needed as the repository allows saving
+        // Специальная настройка не требуется, так как репозиторий позволяет сохранять
         var parameters = new HashMap<String, String>();
         var instrumentId = parameters.computeIfAbsent("instrumentId", id -> RandomStringUtils.secure().nextAlphanumeric(4));
         priceJpaRepository.deleteById(instrumentId);
         return parameters;
     }
 
+    /**
+     * Cleans up after the "price can be saved" provider state.
+     * <p>
+     * Очищает после состояния поставщика "цена может быть сохранена".
+     *
+     * @param parameters The state parameters from setup
+     */
     @State(value = "price can be saved", action = StateChangeAction.TEARDOWN)
     @Transactional
     public void priceCanBeSavedCleanup(Map<String, String> parameters) {

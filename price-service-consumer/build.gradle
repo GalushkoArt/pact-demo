@@ -6,15 +6,35 @@ buildscript {
     }
 }
 
+/**
+ * Gradle build file for the price-service-consumer module.
+ * This module implements a client for the price service and includes Pact consumer contract tests (client test).
+ * <p>
+ * Файл сборки Gradle для модуля price-service-consumer.
+ * Этот модуль реализует клиент для сервиса цен и включает контрактные тесты потребителя Pact (тесты клиента).
+ */
 plugins {
     id 'org.springframework.boot'
     id 'io.spring.dependency-management'
+    // Pact plugin for consumer contract testing
+    // Плагин Pact для контрактного тестирования потребителя
     id 'au.com.dius.pact' version '4.6.17'
+    // OpenAPI generator for client code generation
+    // Генератор OpenAPI для генерации клиентского кода
     id 'org.openapi.generator' version '7.13.0'
 }
 
 version = "0.1.0.1"
 
+/**
+ * OpenAPI code generation configuration.
+ * Generates client code based on the OpenAPI specification.
+ * <p>
+ * Конфигурация генерации кода OpenAPI.
+ * Генерирует клиентский код на основе спецификации OpenAPI.
+ *
+ * @see <a href=https://openapi-generator.tech/docs/generators/java/>java client generator</a>
+ */
 openApiGenerate {
     generatorName = "java"
     inputSpec = "$rootDir/oas/openapi.yaml"
@@ -32,6 +52,7 @@ openApiGenerate {
 }
 
 // Add generated sources to the source set
+// Добавление сгенерированных исходников в набор исходных кодов
 sourceSets {
     main {
         java {
@@ -40,38 +61,58 @@ sourceSets {
     }
 }
 
-// Make sure the OpenAPI code is generated before compiling
+// Dependency to make sure the OpenAPI code is generated before compiling
+// Зависимость чтобы код OpenAPI был сгенерирован перед компиляцией
 compileJava.dependsOn('openApiGenerate')
 
 // Ensure generated sources are available during compilation
+// Обеспечение доступности сгенерированных исходников во время компиляции
 tasks.named('compileJava') {
     options.compilerArgs << '-Xlint:unchecked'
     doFirst {
         // Make sure the directory exists
+        // Создание директории при её отсутствии до компиляции
         file("$buildDir/generated/src/main/java").mkdirs()
     }
 }
 
+/**
+ * Project dependencies.
+ * Includes Spring Boot, Lombok, OpenAPI, and Pact for consumer testing (client tests).
+ * <p>
+ * Зависимости проекта.
+ * Включает Spring Boot, Lombok, OpenAPI и Pact для тестирования потребителя (тесты клиента).
+ */
 dependencies {
     // Spring Boot
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    
+
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     // OpenAPI generated code dependencies
+    // Зависимости для сгенерированного кода OpenAPI
     implementation 'io.swagger.core.v3:swagger-annotations:2.2.15'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.19.0'
-    
+
     // Pact for consumer testing
+    // Pact для тестирования потребителя
     testImplementation 'au.com.dius.pact.consumer:junit5:4.6.17'
-    
+
     // Testing
+    // Тестирование
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
+/**
+ * Pact configuration for publishing contracts to the Pact Broker.
+ * This is essential for sharing contracts between consumers and providers.
+ * <p>
+ * Конфигурация Pact для публикации контрактов в Pact Broker.
+ * Это необходимо для обмена контрактами между потребителями и поставщиками.
+ */
 pact {
     publish {
         pactBrokerUrl = 'http://localhost:9292'

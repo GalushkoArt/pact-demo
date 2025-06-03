@@ -28,7 +28,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Pact consumer test for the Price Service client.
  * This test defines the contract between the consumer and provider for price-related operations.
- * Updated to include authentication for DELETE and POST methods.
+ * <p>
+ * Тест потребителя Pact для клиента сервиса цен.
+ * Этот тест определяет контракт между потребителем и поставщиком для операций, связанных с ценами.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "price-service.base-url=http://localhost:9090",
@@ -43,21 +45,45 @@ public class PriceApiPactTest {
     @Autowired
     private PricesApi pricesApi;
 
+    /**
+     * Setup method to disable HTTP keep-alive for tests.
+     * This helps prevent connection issues during test execution.
+     * <p>
+     * Метод настройки для отключения HTTP keep-alive для тестов.
+     * Это помогает предотвратить проблемы с соединением во время выполнения тестов.
+     *
+     * @see <a href=https://github.com/pact-foundation/pact-jvm/issues/342>issue</a>
+     * @see <a href=https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-keepalive.html>Persistent Connections Oracle doc</a>
+     */
     @BeforeAll
     public static void setup() {
         System.setProperty("http.keepAlive", "false");
     }
 
+    /**
+     * Defines a contract for retrieving all prices.
+     * Uses type matchers instead of exact values for flexibility.
+     * <p>
+     * Определяет контракт для получения всех цен.
+     * Использует матчеры типов вместо точных значений для гибкости.
+     *
+     * @param builder The Pact DSL builder
+     * @return The defined contract
+     */
     @Pact(consumer = "new-price-service-consumer")
     public RequestResponsePact getAllPricesPact(PactDslWithProvider builder) {
         var timestamp = Instant.now().toString();
         return builder
+                // Define the provider state - a key best practice
+                // Определение состояния поставщика - ключевая лучшая практика
                 .given("prices exist")
                 .uponReceiving("a request for all prices")
                 .path("/prices")
                 .method("GET")
                 .willRespondWith()
                 .status(200)
+                // Using type matchers instead of exact values - recommended best practice
+                // Использование матчеров типов вместо точных значений - рекомендуемая лучшая практика
                 .body(newJsonArrayMinLike(1, array -> {
                     array.object(o -> {
                         o.stringType("instrumentId", "AAPL");
@@ -69,11 +95,20 @@ public class PriceApiPactTest {
                 .toPact();
     }
 
+    /**
+     * Tests the retrieval of all prices.
+     * Uses flexible assertions to verify response structure without exact values.
+     * <p>
+     * Тестирует получение всех цен.
+     * Использует гибкие утверждения для проверки структуры ответа без точных значений.
+     */
     @Test
     @PactTestFor(pactMethod = "getAllPricesPact")
     void testGetAllPrices() {
         List<PriceDto> prices = pricesApi.getAllPrices();
 
+        // Flexible assertions - verify structure without exact values
+        // Гибкие утверждения - проверка структуры без точных значений
         assertThat(prices).isNotNull();
         assertThat(prices.size()).isGreaterThanOrEqualTo(1);
         assertThat(prices.get(0).getInstrumentId()).isNotNull();
@@ -82,17 +117,33 @@ public class PriceApiPactTest {
         assertThat(prices.get(0).getLastUpdated()).isNotNull();
     }
 
+    /**
+     * Defines a contract for retrieving a specific price by ID.
+     * Uses provider state parameters for dynamic testing.
+     * <p>
+     * Определяет контракт для получения конкретной цены по ID.
+     * Использует параметры состояния поставщика для динамического тестирования.
+     *
+     * @param builder The Pact DSL builder
+     * @return The defined contract
+     */
     @Pact(consumer = "new-price-service-consumer")
     public RequestResponsePact getPricePact(PactDslWithProvider builder) {
         var timestamp = Instant.now().toString();
         return builder
+                // Clear provider state definition
+                // Четкое определение состояния поставщика
                 .given("price with ID exists")
                 .uponReceiving("a request for price with ID AAPL")
+                // Using provider state parameters for path
+                // Использование параметров состояния поставщика для пути
                 .pathFromProviderState("/prices/${instrumentId}", "/prices/AAPL")
                 .method("GET")
                 .willRespondWith()
                 .status(200)
                 .body(newJsonBody(body -> {
+                    // Using provider state values in response
+                    // Использование значений состояния поставщика в ответе
                     body.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
                     body.decimalType("bidPrice", 175.50);
                     body.decimalType("askPrice", 175.75);
@@ -101,17 +152,36 @@ public class PriceApiPactTest {
                 .toPact();
     }
 
+    /**
+     * Tests the retrieval of a specific price.
+     * Combines exact value assertions with flexible type assertions.
+     * <p>
+     * Тестирует получение конкретной цены.
+     * Сочетает утверждения точных значений с гибкими утверждениями типов.
+     */
     @Test
     @PactTestFor(pactMethod = "getPricePact")
     void testGetPrice() {
         PriceDto price = pricesApi.getPrice("AAPL");
 
+        // Exact assertion for ID, flexible assertions for other fields
+        // Точное утверждение для ID, гибкие утверждения для других полей
         assertThat(price.getInstrumentId()).isEqualTo("AAPL");
         assertThat(price.getBidPrice()).isNotNull();
         assertThat(price.getAskPrice()).isNotNull();
         assertThat(price.getLastUpdated()).isNotNull();
     }
 
+    /**
+     * Defines a contract for the 404 Not Found scenario.
+     * Testing error scenarios is the best practice in contract testing.
+     * <p>
+     * Определяет контракт для сценария 404 Not Found.
+     * Тестирование сценариев ошибок - важная практика в контрактном тестировании.
+     *
+     * @param builder The Pact DSL builder
+     * @return The defined contract
+     */
     @Pact(consumer = "new-price-service-consumer")
     public RequestResponsePact getPriceNotFoundPact(PactDslWithProvider builder) {
         return builder
@@ -124,6 +194,13 @@ public class PriceApiPactTest {
                 .toPact();
     }
 
+    /**
+     * Tests the 404 Not Found scenario.
+     * Proper error handling is essential for robust client implementations.
+     * <p>
+     * Тестирует сценарий 404 Not Found.
+     * Правильная обработка ошибок необходима для надежных реализаций клиента.
+     */
     @Test
     @PactTestFor(pactMethod = "getPriceNotFoundPact")
     void testGetPriceNotFound() {

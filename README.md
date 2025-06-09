@@ -186,6 +186,16 @@ make new-consumer-tests
 
 This will generate Pact contracts in [new-price-service-consumer/build/pacts/](new-price-service-consumer/build/pacts/) and publish them to the Pact Broker.
 
+#### gRPC contract tests
+
+The new consumer also verifies the gRPC `PriceService`. The tests cover `GetAllPrices` and `GetPrice` methods using the Pact gRPC plugin. The streaming `StreamPrices` method is excluded because Pact currently focuses on request/response interactions and does not handle long‑lived streams well.
+
+Run the gRPC consumer tests with:
+
+```bash
+./gradlew :new-price-service-consumer:test
+```
+
 ### pact-broker
 
 Docker Compose setup for the Pact Broker, including:
@@ -237,6 +247,7 @@ make pact-tests
 
 This command runs the JUnit5 tests in the price-service-provider module
 that verifies the provider against the published Pact contracts.
+It now includes verification of the gRPC `PriceService`.
 
 ### 5. Check the Pact Broker Again
 

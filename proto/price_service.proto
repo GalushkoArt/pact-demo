@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package com.example.priceservice.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.example.priceservice.grpc";
+option java_outer_classname = "PriceServiceProto";
+
+import "google/protobuf/timestamp.proto";
+
+// Price Service gRPC API
+// Provides methods for retrieving and managing financial instrument prices
+service PriceService {
+  // Get all available prices
+  rpc GetAllPrices(GetAllPricesRequest) returns (GetAllPricesResponse);
+
+  // Get price for a specific instrument
+  rpc GetPrice(GetPriceRequest) returns (GetPriceResponse);
+
+  // Stream real-time price updates for subscribed instruments
+  rpc StreamPrices(StreamPricesRequest) returns (stream PriceUpdate);
+}
+
+// Price-related messages
+message Price {
+  string instrument_id = 1;
+  double bid_price = 2;
+  double ask_price = 3;
+  google.protobuf.Timestamp last_updated = 4;
+}
+
+message GetAllPricesRequest {
+  // Optional pagination parameters
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message GetAllPricesResponse {
+  repeated Price prices = 1;
+  int32 total_count = 2;
+  int32 page = 3;
+  int32 size = 4;
+}
+
+message GetPriceRequest {
+  string instrument_id = 1;
+}
+
+message GetPriceResponse {
+  Price price = 1;
+}
+
+message StreamPricesRequest {
+  repeated string instrument_ids = 1;
+}
+
+message PriceUpdate {
+  Price price = 1;
+  UpdateType update_type = 2;
+}
+
+// Common enums and messages
+enum UpdateType {
+  CREATED = 0;
+  UPDATED = 1;
+  DELETED = 2;
+}
+
+// Error handling
+message ErrorResponse {
+  int32 code = 1;
+  string message = 2;
+  repeated string details = 3;
+}

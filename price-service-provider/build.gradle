@@ -25,6 +25,8 @@ plugins {
     // OpenAPI generator for API interface generation
     // Генератор OpenAPI для генерации интерфейса API
     id 'org.openapi.generator' version '7.13.0'
+    // gRPC plugin for proto compilation
+    id 'com.google.protobuf' version '0.9.4'
 }
 
 version = "0.1.0"
@@ -69,6 +71,11 @@ sourceSets {
     main {
         java {
             srcDir "$buildDir/generated/src/main/java"
+            srcDir "$buildDir/generated/source/proto/main/grpc"
+            srcDir "$buildDir/generated/source/proto/main/java"
+        }
+        proto {
+            srcDir "$rootDir/proto"
         }
     }
 }
@@ -116,6 +123,13 @@ dependencies {
     implementation 'io.swagger.core.v3:swagger-annotations:2.2.15'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.6'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // gRPC dependencies
+    // Зависимости gRPC
+    implementation 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
+    implementation 'io.grpc:grpc-stub:1.66.0'
+    implementation 'io.grpc:grpc-protobuf:1.66.0'
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
 
     // Pact for provider verification
     // Pact для проверки поставщика
@@ -196,3 +210,30 @@ test {
     // Контракты в процессе разработки - включать контракты, созданные за последние 6 месяцев
     systemProperty("pactbroker.includeWipPactsSince", LocalDate.now().minusMonths(6).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
 }
+
+/**
+ * Protobuf configuration for gRPC code generation.
+ * Generates Java classes from proto files.
+ * <p>
+ * Конфигурация Protobuf для генерации кода gRPC.
+ * Генерирует Java классы из proto файлов.
+ */
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.1'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.66.0'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}
+
+// Ensure proto compilation happens before Java compilation
+// Обеспечение компиляции proto перед компиляцией Java
+compileJava.dependsOn('generateProto')

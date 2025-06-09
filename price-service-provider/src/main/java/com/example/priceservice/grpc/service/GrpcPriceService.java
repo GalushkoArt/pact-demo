@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -139,22 +138,6 @@ public class GrpcPriceService extends PriceServiceGrpc.PriceServiceImplBase {
                 .setBidPrice(domainPrice.getBidPrice().doubleValue())
                 .setAskPrice(domainPrice.getAskPrice().doubleValue())
                 .setLastUpdated(timestamp)
-                .build();
-    }
-
-    /**
-     * Converts gRPC Price message to domain Price model
-     */
-    private com.example.priceservice.domain.model.Price convertToDomainPrice(Price grpcPrice) {
-        Instant lastUpdated = Instant.ofEpochSecond(
-                grpcPrice.getLastUpdated().getSeconds(),
-                grpcPrice.getLastUpdated().getNanos());
-
-        return com.example.priceservice.domain.model.Price.builder()
-                .instrumentId(grpcPrice.getInstrumentId())
-                .bidPrice(java.math.BigDecimal.valueOf(grpcPrice.getBidPrice()))
-                .askPrice(java.math.BigDecimal.valueOf(grpcPrice.getAskPrice()))
-                .lastUpdated(lastUpdated)
                 .build();
     }
 }

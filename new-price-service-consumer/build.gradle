@@ -114,6 +114,7 @@ dependencies {
     // Pact for consumer testing
     // Pact для тестирования потребителя
     testImplementation 'au.com.dius.pact.consumer:junit5:4.6.17'
+    testImplementation 'io.pact.plugin.driver:core:0.5.1'
 
     // Testing
     // Тестирование

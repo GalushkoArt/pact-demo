@@ -58,6 +58,19 @@ public class GrpcPriceServicePactTest {
                 .toPact();
     }
 
+    @Test
+    @PactTestFor(pactMethod = "getAllPricesPact", providerType = ProviderType.SYNCH_MESSAGE)
+    void testGetAllPrices(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
+        ManagedChannel channel = ManagedChannelBuilder.forTarget("127.0.0.1:" + mockServer.getPort())
+                .usePlaintext()
+                .build();
+        PriceServiceGrpc.PriceServiceBlockingStub stub = PriceServiceGrpc.newBlockingStub(channel);
+        GetAllPricesRequest request = GetAllPricesRequest.newBuilder().setPage(1).setSize(1).build();
+        GetAllPricesResponse response = stub.getAllPrices(request);
+        assertThat(response.getPricesCount()).isGreaterThan(0);
+        assertThat(response.getPage()).isEqualTo(1);
+    }
+
     @Pact(consumer = "new-price-service-consumer")
     public V4Pact getPricePact(PactBuilder builder) {
         return builder
@@ -82,6 +95,17 @@ public class GrpcPriceServicePactTest {
                 .toPact();
     }
 
+    @Test
+    @PactTestFor(pactMethod = "getPricePact", providerType = ProviderType.SYNCH_MESSAGE)
+    void testGetPrice(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
+        ManagedChannel channel = ManagedChannelBuilder.forTarget("127.0.0.1:" + mockServer.getPort())
+                .usePlaintext()
+                .build();
+        PriceServiceGrpc.PriceServiceBlockingStub stub = PriceServiceGrpc.newBlockingStub(channel);
+        GetPriceResponse response = stub.getPrice(GetPriceRequest.newBuilder().setInstrumentId("AAPL").build());
+        assertThat(response.getPrice().getInstrumentId()).isEqualTo("AAPL");
+    }
+
     @Pact(consumer = "new-price-service-consumer")
     public V4Pact getPriceNotFoundPact(PactBuilder builder) {
         return builder
@@ -101,30 +125,6 @@ public class GrpcPriceServicePactTest {
                         )
                 ))
                 .toPact();
-    }
-
-    @Test
-    @PactTestFor(pactMethod = "getAllPricesPact", providerType = ProviderType.SYNCH_MESSAGE)
-    void testGetAllPrices(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
-        ManagedChannel channel = ManagedChannelBuilder.forTarget("127.0.0.1:" + mockServer.getPort())
-                .usePlaintext()
-                .build();
-        PriceServiceGrpc.PriceServiceBlockingStub stub = PriceServiceGrpc.newBlockingStub(channel);
-        GetAllPricesRequest request = GetAllPricesRequest.newBuilder().setPage(1).setSize(1).build();
-        GetAllPricesResponse response = stub.getAllPrices(request);
-        assertThat(response.getPricesCount()).isGreaterThan(0);
-        assertThat(response.getPage()).isEqualTo(1);
-    }
-
-    @Test
-    @PactTestFor(pactMethod = "getPricePact", providerType = ProviderType.SYNCH_MESSAGE)
-    void testGetPrice(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
-        ManagedChannel channel = ManagedChannelBuilder.forTarget("127.0.0.1:" + mockServer.getPort())
-                .usePlaintext()
-                .build();
-        PriceServiceGrpc.PriceServiceBlockingStub stub = PriceServiceGrpc.newBlockingStub(channel);
-        GetPriceResponse response = stub.getPrice(GetPriceRequest.newBuilder().setInstrumentId("AAPL").build());
-        assertThat(response.getPrice().getInstrumentId()).isEqualTo("AAPL");
     }
 
     @Test

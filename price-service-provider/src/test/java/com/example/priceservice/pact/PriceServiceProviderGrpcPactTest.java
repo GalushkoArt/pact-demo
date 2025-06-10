@@ -6,11 +6,7 @@ import au.com.dius.pact.provider.junit5.PluginTestTarget;
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.StateChangeAction;
-import au.com.dius.pact.provider.junitsupport.loader.PactBroker;
-import au.com.dius.pact.provider.junitsupport.loader.PactBrokerAuth;
-import au.com.dius.pact.provider.junitsupport.loader.VersionSelector;
-import au.com.dius.pact.provider.junitsupport.loader.PactBrokerConsumerVersionSelectors;
-import au.com.dius.pact.provider.junitsupport.loader.SelectorBuilder;
+import au.com.dius.pact.provider.junitsupport.loader.*;
 import com.example.priceservice.adapter.persistence.entity.PriceEntity;
 import com.example.priceservice.adapter.persistence.repository.PriceJpaRepository;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -34,7 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
-        "grpc.server.port=9090",
+        "grpc.server.port=19090",
         "admin.username=admin",
         "admin.password=password"
 })
@@ -57,7 +53,7 @@ public class PriceServiceProviderGrpcPactTest {
     void setUp(PactVerificationContext context) {
         context.setTarget(new PluginTestTarget(Map.of(
                 "host", "localhost",
-                "port", 9090,
+                "port", 19090,
                 "transport", "grpc"
         )));
     }
@@ -99,17 +95,17 @@ public class PriceServiceProviderGrpcPactTest {
 
     @State(value = "price with ID exists", action = StateChangeAction.SETUP)
     @Transactional
-    public Map<String, String> priceWithIdExists() {
-        var parameters = new HashMap<String, String>();
+    public Map<String, String> priceWithIdExists(Map<String, String> param) {
+        var parameters = new HashMap<>(param);
         var instrumentId = parameters.computeIfAbsent("instrumentId", id -> RandomStringUtils.secure().nextAlphanumeric(4));
         priceJpaRepository.findById(instrumentId).ifPresent(price -> priceJpaRepository.delete(price));
-        PriceEntity apple = PriceEntity.builder()
+        var price = PriceEntity.builder()
                 .instrumentId(instrumentId)
                 .bidPrice(new BigDecimal("175.50"))
                 .askPrice(new BigDecimal("175.75"))
                 .lastUpdated(Instant.now())
                 .build();
-        priceJpaRepository.save(apple);
+        priceJpaRepository.save(price);
         return parameters;
     }
 

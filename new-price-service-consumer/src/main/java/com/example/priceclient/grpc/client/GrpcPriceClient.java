@@ -46,10 +46,10 @@ public class GrpcPriceClient {
 
         } catch (StatusRuntimeException e) {
             log.error("gRPC error in getAllPrices: {}", e.getStatus().getDescription(), e);
-            return Optional.empty();
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error in getAllPrices", e);
-            return Optional.empty();
+            throw e;
         }
     }
 
@@ -78,10 +78,10 @@ public class GrpcPriceClient {
                 return Optional.empty();
             }
             log.error("gRPC error in getPrice for instrument {}: {}", instrumentId, e.getStatus().getDescription(), e);
-            return Optional.empty();
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error in getPrice for instrument: {}", instrumentId, e);
-            return Optional.empty();
+            throw e;
         }
     }
 
@@ -114,6 +114,10 @@ public class GrpcPriceClient {
             log.error("Unexpected error in streamPrices", e);
             return List.of();
         }
+    }
+
+    void setPriceServiceStub(PriceServiceGrpc.PriceServiceBlockingStub priceServiceStub) {
+        this.priceServiceStub = priceServiceStub;
     }
 }
 

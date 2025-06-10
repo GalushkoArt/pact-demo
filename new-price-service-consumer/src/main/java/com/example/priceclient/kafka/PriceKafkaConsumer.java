@@ -26,7 +26,7 @@ public class PriceKafkaConsumer {
         }
     }
 
-    public void processPriceUpdate(PriceUpdateMessage message) {
+    void processPriceUpdate(PriceUpdateMessage message) {
         log.info("Received price update: {}", message);
         // further processing logic would go here
     }

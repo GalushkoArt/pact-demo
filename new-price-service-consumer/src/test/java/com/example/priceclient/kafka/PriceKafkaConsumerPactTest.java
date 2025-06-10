@@ -1,25 +1,36 @@
 package com.example.priceclient.kafka;
 
 import au.com.dius.pact.consumer.MessagePactBuilder;
-import au.com.dius.pact.consumer.dsl.PactDslJsonBody;
-import au.com.dius.pact.core.model.messaging.MessagePact;
 import au.com.dius.pact.consumer.junit5.PactConsumerTestExt;
 import au.com.dius.pact.consumer.junit5.PactTestFor;
 import au.com.dius.pact.consumer.junit5.ProviderType;
 import au.com.dius.pact.core.model.PactSpecVersion;
 import au.com.dius.pact.core.model.annotations.Pact;
 import au.com.dius.pact.core.model.messaging.Message;
+import au.com.dius.pact.core.model.messaging.MessagePact;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static au.com.dius.pact.consumer.dsl.LambdaDsl.newJsonBody;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "price-service-provider-kafka", providerType = ProviderType.ASYNCH, pactVersion = PactSpecVersion.V3)
+@SpringBootTest(properties = "spring.autoconfigure.exclude=net.devh.boot.grpc.client.autoconfigure.GrpcClientAutoConfiguration")
 public class PriceKafkaConsumerPactTest {
+    @SpyBean
+    private PriceKafkaConsumer consumer;
+    @Captor
+    ArgumentCaptor<PriceUpdateMessage> priceUpdateCaptor;
 
     /**
      * Defines the contract for a single price update message.
@@ -30,32 +41,28 @@ public class PriceKafkaConsumerPactTest {
      */
     @Pact(consumer = "new-price-service-consumer")
     public MessagePact priceUpdatePact(MessagePactBuilder builder) {
-        PactDslJsonBody body = new PactDslJsonBody()
-                .stringType("instrumentId", "AAPL")
-                .decimalType("bidPrice", 175.50)
-                .decimalType("askPrice", 175.75)
-                .stringMatcher("lastUpdated", ".+", "2024-01-01T00:00:00Z");
         return builder
                 .given("price update event")
                 .expectsToReceive("price updated")
                 .withMetadata(Map.of("contentType", "application/json"))
-                .withContent(body)
+                .withContent(newJsonBody(body -> {
+                    body.stringType("instrumentId", "AAPL");
+                    body.numberType("bidPrice", 175.50);
+                    body.numberType("askPrice", 175.75);
+                    body.stringMatcher("lastUpdated", ".+", "2024-01-01T00:00:00Z");
+                }).build())
                 .toPact();
     }
 
     @Test
     @PactTestFor(pactMethod = "priceUpdatePact")
-    void testConsumePriceUpdate(List<Message> messages) throws Exception {
-        // Deserialize the Pact-generated message and pass it to the consumer
-        // Десериализуем сообщение, созданное Pact, и передаем его потребителю
-        String json = messages.get(0).getContents().valueAsString();
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-        PriceKafkaConsumer consumer = new PriceKafkaConsumer(mapper);
-
-        // Best practice is to test the consumer's processing logic, not just JSON parsing
-        // Лучшая практика — тестировать бизнес-логику потребителя, а не только разбор JSON
-        consumer.processPriceUpdate(mapper.readValue(json, PriceUpdateMessage.class));
-        assertThat(json).isNotBlank();
+    void testConsumePriceUpdate(List<Message> messages) {
+        consumer.listen(messages.getFirst().contentsAsString());
+        verify(consumer).processPriceUpdate(priceUpdateCaptor.capture());
+        var value = priceUpdateCaptor.getValue();
+        assertThat(value.getInstrumentId()).isEqualTo("AAPL");
+        assertThat(value.getBidPrice()).isEqualTo(BigDecimal.valueOf(175.50));
+        assertThat(value.getAskPrice()).isEqualTo(BigDecimal.valueOf(175.75));
+        assertThat(value.getLastUpdated()).isEqualTo("2024-01-01T00:00:00Z");
     }
 }

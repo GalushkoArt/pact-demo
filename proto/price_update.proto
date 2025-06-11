@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package com.example.priceservice.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.example.priceservice.grpc";
+option java_outer_classname = "PriceUpdateProto";
+
+import "google/protobuf/timestamp.proto";
+
+message Price {
+  string instrument_id = 1;
+  double bid_price = 2;
+  double ask_price = 3;
+  google.protobuf.Timestamp last_updated = 4;
+}
+
+enum UpdateType {
+  CREATED = 0;
+  UPDATED = 1;
+  DELETED = 2;
+}
+
+message PriceUpdate {
+  Price price = 1;
+  UpdateType update_type = 2;
+}

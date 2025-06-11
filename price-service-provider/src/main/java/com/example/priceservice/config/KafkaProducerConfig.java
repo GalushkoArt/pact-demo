@@ -1,6 +1,7 @@
 package com.example.priceservice.config;
 
 import com.example.priceservice.kafka.PriceUpdateMessage;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,5 +33,19 @@ public class KafkaProducerConfig {
     @Bean
     public KafkaTemplate<String, PriceUpdateMessage> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
+    }
+
+    @Bean
+    public ProducerFactory<String, byte[]> protoProducerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    @Bean
+    public KafkaTemplate<String, byte[]> protoKafkaTemplate() {
+        return new KafkaTemplate<>(protoProducerFactory());
     }
 }

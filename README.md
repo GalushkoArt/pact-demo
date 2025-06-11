@@ -79,6 +79,13 @@ You can run the complete workflow demonstration:
 make full-workflow
 ```
 
+### Kafka Messaging Using Protobuf
+
+The demo includes asynchronous communication over Kafka. The provider publishes
+`PriceUpdate` events encoded with Protocol Buffers and the new consumer subscribes
+to the same topic. Pact tests exercise this flow with the protobuf plugin. Scenarios
+related to ordering or delivery guarantees are better covered with integration tests.
+
 But suggest following the step-by-step instructions in the "Contract Testing Workflow Demonstration" section.
 
 ### 5. Implementing Your Own Contract Tests
@@ -195,6 +202,18 @@ Run the gRPC consumer tests with:
 ```bash
 ./gradlew :new-price-service-consumer:test
 ```
+
+#### Kafka protobuf contract tests
+
+The consumer also subscribes to price updates delivered via Kafka using Protocol Buffers. 
+Pact tests verify the structure of the `PriceUpdate` message with the protobuf plugin.
+Message ordering and Kafka-specific delivery semantics are out of scope for Pact and should be
+covered with integration tests using an embedded Kafka broker.
+
+Limitations of Pact for Kafka testing:
+- Ordering of events and delivery semantics are not verified.
+- Headers and partitioning metadata are ignored.
+- Long running streams should be tested with system or integration tests.
 
 ### pact-broker
 

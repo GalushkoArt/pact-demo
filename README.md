@@ -83,7 +83,8 @@ make full-workflow
 
 The demo includes asynchronous communication over Kafka. The provider publishes
 `PriceUpdate` events encoded with Protocol Buffers and the new consumer subscribes
-to the same topic. Pact tests exercise this flow with the protobuf plugin. Scenarios
+to the same topic. The message schema is defined in [`proto/price_update.proto`](proto/price_update.proto).
+Pact tests exercise this flow with the protobuf plugin. Scenarios
 related to ordering or delivery guarantees are better covered with integration tests.
 
 But suggest following the step-by-step instructions in the "Contract Testing Workflow Demonstration" section.

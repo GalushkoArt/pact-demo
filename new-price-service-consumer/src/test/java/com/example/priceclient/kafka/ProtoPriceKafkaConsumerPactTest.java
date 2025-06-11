@@ -41,7 +41,7 @@ public class ProtoPriceKafkaConsumerPactTest {
                 .expectsToReceive("price updated", "core/interaction/message")
                 .with(Map.of(
                         "message.contents", Map.of(
-                                "pact:proto", filePath("../proto/price_service.proto"),
+                                "pact:proto", filePath("../proto/price_update.proto"),
                                 "pact:message-type", "PriceUpdate",
                                 "pact:content-type", "application/protobuf",
                                 "price", Map.of(

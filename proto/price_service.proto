@@ -7,6 +7,7 @@ option java_package = "com.example.priceservice.grpc";
 option java_outer_classname = "PriceServiceProto";
 
 import "google/protobuf/timestamp.proto";
+import "price_update.proto";
 
 // Price Service gRPC API
 // Provides methods for retrieving and managing financial instrument prices
@@ -21,13 +22,6 @@ service PriceService {
   rpc StreamPrices(StreamPricesRequest) returns (stream PriceUpdate);
 }
 
-// Price-related messages
-message Price {
-  string instrument_id = 1;
-  double bid_price = 2;
-  double ask_price = 3;
-  google.protobuf.Timestamp last_updated = 4;
-}
 
 message GetAllPricesRequest {
   // Optional pagination parameters
@@ -54,17 +48,7 @@ message StreamPricesRequest {
   repeated string instrument_ids = 1;
 }
 
-message PriceUpdate {
-  Price price = 1;
-  UpdateType update_type = 2;
-}
-
 // Common enums and messages
-enum UpdateType {
-  CREATED = 0;
-  UPDATED = 1;
-  DELETED = 2;
-}
 
 // Error handling
 message ErrorResponse {

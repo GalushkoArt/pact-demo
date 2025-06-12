@@ -1,4 +1,4 @@
-package com.example.priceservice.grpc.service;
+package com.example.priceservice.adapter.api;
 
 import com.example.priceservice.domain.service.PriceServiceImpl;
 import com.example.priceservice.grpc.*;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @GrpcService
 @RequiredArgsConstructor
 @Slf4j
-public class GrpcPriceService extends PriceServiceGrpc.PriceServiceImplBase {
+public class GrpcPriceServiceController extends PriceServiceGrpc.PriceServiceImplBase {
 
     private final PriceServiceImpl priceService;
 

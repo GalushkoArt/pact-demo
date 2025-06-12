@@ -1,10 +1,10 @@
 package com.example.priceservice.domain.service;
 
+import com.example.priceservice.adapter.kafka.PriceKafkaProducer;
+import com.example.priceservice.adapter.kafka.ProtoPriceKafkaProducer;
 import com.example.priceservice.domain.model.OrderBook;
 import com.example.priceservice.domain.model.Price;
 import com.example.priceservice.domain.port.PriceRepository;
-import com.example.priceservice.kafka.PriceKafkaProducer;
-import com.example.priceservice.kafka.ProtoPriceKafkaProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

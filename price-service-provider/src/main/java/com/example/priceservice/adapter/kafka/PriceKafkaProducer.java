@@ -1,6 +1,7 @@
-package com.example.priceservice.kafka;
+package com.example.priceservice.adapter.kafka;
 
 import com.example.priceservice.domain.model.Price;
+import com.example.priceservice.domain.model.PriceUpdateMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

@@ -1,6 +1,5 @@
-package com.example.priceservice.kafka;
+package com.example.priceservice.domain.model;
 
-import com.example.priceservice.domain.model.Price;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

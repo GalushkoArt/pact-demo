@@ -13,7 +13,7 @@ import au.com.dius.pact.provider.junitsupport.StateChangeAction;
 import au.com.dius.pact.provider.junitsupport.loader.*;
 import com.example.priceservice.config.JacksonConfig;
 import com.example.priceservice.domain.model.Price;
-import com.example.priceservice.kafka.PriceUpdateMessage;
+import com.example.priceservice.domain.model.PriceUpdateMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;

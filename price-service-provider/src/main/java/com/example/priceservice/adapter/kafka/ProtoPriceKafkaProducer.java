@@ -1,4 +1,4 @@
-package com.example.priceservice.kafka;
+package com.example.priceservice.adapter.kafka;
 
 import com.example.priceservice.grpc.PriceUpdate;
 import com.example.priceservice.grpc.UpdateType;

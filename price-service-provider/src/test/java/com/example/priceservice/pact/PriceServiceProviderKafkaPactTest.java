@@ -71,6 +71,7 @@ public class PriceServiceProviderKafkaPactTest {
         return new HashMap<>();
     }
 
+    //Try not to duplicate provider name across providers
     @PactVerifyProvider("price updated")
     public MessageAndMetadata verifyPriceUpdatedMessage() throws JsonProcessingException {
         // Build a representative domain object and convert it to the Kafka message

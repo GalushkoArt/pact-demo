@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "price-service.base-url=http://localhost:9091",
         "price-service.username=admin",
         "price-service.password=password",
+        "spring.autoconfigure.exclude=net.devh.boot.grpc.client.autoconfigure.GrpcClientAutoConfiguration",
 })
 @MockServerConfig(port = "9091")
 @ExtendWith(PactConsumerTestExt.class)

@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 public class GrpcPriceServicePactTest {
 
-    @Pact(consumer = "new-price-service-consumer")
+    @Pact(consumer = "price-service-consumer")
     public V4Pact getAllPricesPact(PactBuilder builder) {
         return builder
                 .usingPlugin("protobuf")
@@ -73,7 +73,7 @@ public class GrpcPriceServicePactTest {
         assertThat(allPrices.get(0).getLastUpdated()).isNotNull();
     }
 
-    @Pact(consumer = "new-price-service-consumer")
+    @Pact(consumer = "price-service-consumer")
     public V4Pact getPricePact(PactBuilder builder) {
         return builder
                 .usingPlugin("protobuf")
@@ -109,7 +109,7 @@ public class GrpcPriceServicePactTest {
         assertThat(price.get().getLastUpdated()).isNotNull();
     }
 
-    @Pact(consumer = "new-price-service-consumer")
+    @Pact(consumer = "price-service-consumer")
     public V4Pact getPriceNotFoundPact(PactBuilder builder) {
         return builder
                 .usingPlugin("protobuf")

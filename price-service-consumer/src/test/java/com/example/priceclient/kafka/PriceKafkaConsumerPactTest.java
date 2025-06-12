@@ -39,7 +39,7 @@ public class PriceKafkaConsumerPactTest {
      * Определяет контракт для одного сообщения обновления цены.
      * Использование Pact DSL делает схему явной и версионируемой вместе с тестом.
      */
-    @Pact(consumer = "new-price-service-consumer")
+    @Pact(consumer = "price-service-consumer")
     public MessagePact priceUpdatePact(MessagePactBuilder builder) {
         return builder
                 .given("price update event")

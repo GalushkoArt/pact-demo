@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ProtoPriceKafkaConsumer {
 
-    @KafkaListener(topics = "${price.kafka.topic:price-updates-proto}", groupId = "price-client-proto", containerFactory = "protoKafkaListenerContainerFactory")
+    @KafkaListener(topics = "${price.kafka.proto.topic:price-updates.proto}", groupId = "price-client-proto", containerFactory = "protoKafkaListenerContainerFactory")
     public void listen(byte[] message) {
         try {
             PriceUpdate event = PriceUpdate.parseFrom(message);

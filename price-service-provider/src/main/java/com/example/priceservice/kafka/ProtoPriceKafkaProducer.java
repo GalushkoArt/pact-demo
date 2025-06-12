@@ -1,6 +1,5 @@
 package com.example.priceservice.kafka;
 
-import com.example.priceservice.domain.model.Price;
 import com.example.priceservice.grpc.PriceUpdate;
 import com.example.priceservice.grpc.UpdateType;
 import com.google.protobuf.Timestamp;
@@ -20,7 +19,7 @@ public class ProtoPriceKafkaProducer {
 
     private final KafkaTemplate<String, byte[]> protoKafkaTemplate;
 
-    @Value("${price.kafka.topic:price-updates-proto}")
+    @Value("${price.kafka.proto.topic:price-updates-proto.proto}")
     private String topic;
 
     public void sendPriceUpdate(com.example.priceservice.domain.model.Price price) {

@@ -4,6 +4,7 @@ import com.example.priceservice.domain.model.OrderBook;
 import com.example.priceservice.domain.model.Price;
 import com.example.priceservice.domain.port.PriceRepository;
 import com.example.priceservice.kafka.PriceKafkaProducer;
+import com.example.priceservice.kafka.ProtoPriceKafkaProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class PriceServiceImpl {
 
     private final PriceRepository priceRepository;
     private final PriceKafkaProducer priceKafkaProducer;
+    private final ProtoPriceKafkaProducer protoPriceKafkaProducer;
 
     /**
      * Retrieves the price for a specific instrument
@@ -57,6 +59,7 @@ public class PriceServiceImpl {
         Price saved = priceRepository.save(price);
         // Publish update event to Kafka
         priceKafkaProducer.sendPriceUpdate(saved);
+        protoPriceKafkaProducer.sendPriceUpdate(saved);
         return saved;
     }
 

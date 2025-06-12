@@ -11,7 +11,7 @@ import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.StateChangeAction;
 import au.com.dius.pact.provider.junitsupport.loader.*;
-import com.example.priceservice.domain.model.Price;
+import com.example.priceservice.grpc.Price;
 import com.example.priceservice.grpc.PriceUpdate;
 import com.example.priceservice.grpc.UpdateType;
 import com.google.protobuf.Timestamp;
@@ -20,8 +20,6 @@ import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,29 +61,21 @@ public class PriceServiceProviderProtoKafkaPactTest {
         return new HashMap<>();
     }
 
-    @PactVerifyProvider("price updated")
+    //Try not to duplicate provider name across providers
+    @PactVerifyProvider("proto price updated")
     public MessageAndMetadata verifyPriceUpdatedMessage() {
-        Price price = Price.builder()
-                .instrumentId(randomAlphabetic(4))
-                .bidPrice(new BigDecimal("10"))
-                .askPrice(new BigDecimal("11"))
-                .lastUpdated(Instant.now())
-                .build();
-        com.example.priceservice.grpc.Price priceMsg = com.example.priceservice.grpc.Price.newBuilder()
-                .setInstrumentId(price.getInstrumentId())
-                .setBidPrice(price.getBidPrice().doubleValue())
-                .setAskPrice(price.getAskPrice().doubleValue())
-                .setLastUpdated(Timestamp.newBuilder()
-                        .setSeconds(price.getLastUpdated().getEpochSecond())
-                        .setNanos(price.getLastUpdated().getNano())
-                        .build())
+        Price priceMsg = Price.newBuilder()
+                .setInstrumentId(randomAlphabetic(4))
+                .setBidPrice(10)
+                .setAskPrice(11)
+                .setLastUpdated(Timestamp.getDefaultInstance())
                 .build();
         PriceUpdate message = PriceUpdate.newBuilder()
                 .setPrice(priceMsg)
                 .setUpdateType(UpdateType.UPDATED)
                 .build();
         var metadata = new HashMap<String, Object>();
-        metadata.put("contentType", "application/protobuf");
+        metadata.put("contentType", "application/protobuf;message=." + PriceUpdate.getDescriptor().getFullName());
         return new MessageAndMetadata(message.toByteArray(), metadata);
     }
 }

@@ -278,14 +278,16 @@ You should now see that the contracts have been verified.
 
 ### 6. Check Deployment Compatibility
 
-Check if the provider can be safely deployed:
+Check if the provider and consumer can be safely deployed:
 
 ```bash
-make canideploy-all
+make canideploy-price
+make canideploy-orderbook
+make canideploy-consumer
 ```
 
-This command checks if both price-service-provider-price and price-service-provider-orderbook can be deployed
-without breaking any consumer.
+This command checks if both price-service-provider-price, price-service-provider-orderbook, and price-service-consumer can be deployed
+without breaking any contract.
 Now it should say `Computer says yes \o/`.
 
 ### 7. Run Tests for the New Consumer
@@ -329,34 +331,26 @@ Run the provider tests again:
 make pact-tests
 ```
 
-This will pass without verification of the new contracts because the test results are cached.
-
-### 11. Force Provider Tests
-
-Force the provider tests to run by cleaning the test results first:
-
-```bash
-make pact-tests-force
-```
-
 This will verify all contracts, including the ones from the new consumer.
 
-### 12. Check the Pact Broker Once More
+### 11. Check the Pact Broker Once More
 
 Refresh the Pact Broker UI again to see the updated verification results:
 [http://localhost:9292/](http://localhost:9292/)
 
 You should now see that all contracts have been verified.
 
-### 13. Check Deployment Compatibility Again
+### 12. Check Deployment Compatibility Again
 
 Check if both providers can now be safely deployed:
 
 ```bash
-make canideploy-all
+make canideploy-price
+make canideploy-orderbook
+make canideploy-new-consumer
 ```
 
-This should now pass with `Computer says yes \o/` for both providers.
+This should now pass with `Computer says yes \o/` for both providers and a new consumer.
 
 ## Dynamic State Management
 

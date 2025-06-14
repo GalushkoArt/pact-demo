@@ -10,7 +10,7 @@ import au.com.dius.pact.provider.junitsupport.loader.*;
 import com.example.priceservice.adapter.persistence.entity.OrderBookEntity;
 import com.example.priceservice.adapter.persistence.entity.OrderEntity;
 import com.example.priceservice.adapter.persistence.repository.OrderBookJpaRepository;
-import org.apache.commons.lang3.RandomStringUtils;
+import com.example.priceservice.util.TestDataFactory;
 import org.apache.hc.core5.http.HttpRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
@@ -149,7 +149,7 @@ public class PriceServiceProviderOrderbookPactTest {
         // Clear existing data for this ID
         // Очистка существующих данных для этого ID
         var parameters = new HashMap<String, String>();
-        var instrumentId = parameters.computeIfAbsent("instrumentId", id -> RandomStringUtils.secure().nextAlphanumeric(4));
+        var instrumentId = parameters.computeIfAbsent("instrumentId", id -> TestDataFactory.randomInstrumentId());
         orderBookJpaRepository.findById(instrumentId).ifPresent(orderBook -> orderBookJpaRepository.delete(orderBook));
 
         // Create test data
@@ -241,7 +241,7 @@ public class PriceServiceProviderOrderbookPactTest {
         // Clear existing data for this ID
         // Очистка существующих данных для этого ID
         var parameters = new HashMap<String, String>();
-        var instrumentId = parameters.computeIfAbsent("instrumentId", id -> RandomStringUtils.secure().nextAlphanumeric(4));
+        var instrumentId = parameters.computeIfAbsent("instrumentId", id -> TestDataFactory.randomInstrumentId());
         orderBookJpaRepository.findById(instrumentId).ifPresent(orderBook -> orderBookJpaRepository.delete(orderBook));
         return parameters;
     }

@@ -9,7 +9,7 @@ import au.com.dius.pact.provider.junitsupport.StateChangeAction;
 import au.com.dius.pact.provider.junitsupport.loader.*;
 import com.example.priceservice.adapter.persistence.entity.PriceEntity;
 import com.example.priceservice.adapter.persistence.repository.PriceJpaRepository;
-import org.apache.commons.lang3.RandomStringUtils;
+import com.example.priceservice.util.TestDataFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,7 +97,7 @@ public class PriceServiceProviderGrpcPactTest {
     @Transactional
     public Map<String, String> priceWithIdExists(Map<String, String> param) {
         var parameters = new HashMap<>(param);
-        var instrumentId = parameters.computeIfAbsent("instrumentId", id -> RandomStringUtils.secure().nextAlphanumeric(4));
+        var instrumentId = parameters.computeIfAbsent("instrumentId", id -> TestDataFactory.randomInstrumentId());
         priceJpaRepository.findById(instrumentId).ifPresent(price -> priceJpaRepository.delete(price));
         var price = PriceEntity.builder()
                 .instrumentId(instrumentId)

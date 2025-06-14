@@ -456,6 +456,9 @@ This ensures that the security requirements are properly verified through contra
 5. **Use Dynamic State Management**
    - Create test data dynamically for each test
    - Avoid relying on pre-existing data
+6. **Generate Secure Test Identifiers**
+   - Use `TestDataFactory.randomInstrumentId()` for unique IDs
+   - Enable deterministic mode with `-Dtest.deterministic=true` when debugging
 
 ## Common Pitfalls and Solutions
 
@@ -495,8 +498,8 @@ This ensures that the security requirements are properly verified through contra
   @State(value = "price with ID exists")
   public Map<String, String> priceWithIdExists() {
       var parameters = new HashMap<String, String>();
-      var instrumentId = parameters.computeIfAbsent("instrumentId", 
-          id -> RandomStringUtils.secure().nextAlphanumeric(4));
+      var instrumentId = parameters.computeIfAbsent("instrumentId",
+          id -> TestDataFactory.randomInstrumentId());
       // Setup code using instrumentId
       return parameters;
   }

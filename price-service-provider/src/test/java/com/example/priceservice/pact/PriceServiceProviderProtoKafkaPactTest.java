@@ -23,7 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import com.example.priceservice.util.TestDataFactory;
 
 /**
  * Provider verification for protobuf Kafka price update messages.
@@ -65,7 +65,7 @@ public class PriceServiceProviderProtoKafkaPactTest {
     @PactVerifyProvider("proto price updated")
     public MessageAndMetadata verifyPriceUpdatedMessage() {
         Price priceMsg = Price.newBuilder()
-                .setInstrumentId(randomAlphabetic(4))
+                .setInstrumentId(TestDataFactory.randomInstrumentId())
                 .setBidPrice(10)
                 .setAskPrice(11)
                 .setLastUpdated(Timestamp.getDefaultInstance())

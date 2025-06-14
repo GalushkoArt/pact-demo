@@ -15,6 +15,8 @@ import com.example.priceservice.grpc.Price;
 import com.example.priceservice.grpc.PriceServiceGrpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -23,6 +25,7 @@ import java.util.Map;
 
 import static au.com.dius.pact.consumer.dsl.PactBuilder.filePath;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "price-service-provider-grpc", providerType = ProviderType.SYNCH_MESSAGE, pactVersion = PactSpecVersion.V4)
@@ -37,11 +40,16 @@ public class GrpcPriceServicePactTest {
         return builder
                 .usingPlugin("protobuf")
                 .given("prices exist")
+                .given("valid token")
                 .expectsToReceive("get all prices", "core/interaction/synchronous-message")
                 .with(Map.of(
                         "pact:proto", filePath("../proto/price_service.proto"),
                         "pact:content-type", "application/grpc",
                         "pact:proto-service", "PriceService/GetAllPrices",
+                        "requestMetadata", Map.of("authorization", "Bearer valid-token"),
+                        "responseMetadata", Map.of(
+                                "x-authenticated", "matching(type, 'true')"
+                        ),
                         "request", Map.of(
                         ),
                         "response", List.of(Map.of(
@@ -83,6 +91,10 @@ public class GrpcPriceServicePactTest {
                         "pact:proto", filePath("../proto/price_service.proto"),
                         "pact:content-type", "application/grpc",
                         "pact:proto-service", "PriceService/GetPrice",
+                        "requestMetadata", Map.of("authorization", "Bearer valid-token"),
+                        "responseMetadata", Map.of(
+                                "x-authenticated", "matching(type, 'true')"
+                        ),
                         "request", Map.of(
                                 "instrument_id", "AAPL"
                         ),
@@ -119,6 +131,7 @@ public class GrpcPriceServicePactTest {
                         "pact:proto", filePath("../proto/price_service.proto"),
                         "pact:content-type", "application/grpc",
                         "pact:proto-service", "PriceService/GetPrice",
+                        "requestMetadata", Map.of("authorization", "Bearer valid-token"),
                         "request", Map.of(
                                 "instrument_id", "UNKNOWN"
                         ),
@@ -137,9 +150,40 @@ public class GrpcPriceServicePactTest {
         assertThat(price).isEmpty();
     }
 
+    @Pact(consumer = "price-service-consumer")
+    public V4Pact missingTokenPact(PactBuilder builder) {
+        return builder
+                .usingPlugin("protobuf")
+                .given("price with ID exists", Map.of("instrumentId", "AAPL"))
+                .given("missing token")
+                .expectsToReceive("missing token get price", "core/interaction/synchronous-message")
+                .with(Map.of(
+                        "pact:proto", filePath("../proto/price_service.proto"),
+                        "pact:content-type", "application/grpc",
+                        "pact:proto-service", "PriceService/GetPrice",
+                        "request", Map.of(
+                                "instrument_id", "AAPL"
+                        ),
+                        "responseMetadata", Map.of(
+                                "grpc-status", "UNAUTHENTICATED",
+                                "grpc-message", "matching(type, 'Missing token')"
+                        )
+                ))
+                .toPact();
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "missingTokenPact", providerType = ProviderType.SYNCH_MESSAGE)
+    void testMissingToken(MockServer mockServer) {
+        assertThatThrownBy(() -> getClient(mockServer).getPrice("AAPL"))
+                .isInstanceOf(StatusRuntimeException.class)
+                .matches(e -> ((StatusRuntimeException) e).getStatus().getCode() == Status.Code.UNAUTHENTICATED);
+    }
+
     private GrpcPriceClient getClient(MockServer mockServer) {
         ManagedChannel channel = ManagedChannelBuilder.forTarget("127.0.0.1:" + mockServer.getPort())
                 .usePlaintext()
+                .intercept(new TokenClientInterceptor("valid-token"))
                 .build();
         PriceServiceGrpc.PriceServiceBlockingStub stub = PriceServiceGrpc.newBlockingStub(channel);
         GrpcPriceClient grpcPriceClient = new GrpcPriceClient();

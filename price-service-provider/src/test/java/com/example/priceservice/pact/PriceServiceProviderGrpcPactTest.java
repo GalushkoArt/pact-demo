@@ -120,4 +120,14 @@ public class PriceServiceProviderGrpcPactTest {
     public void priceWithIdUnknownDoesNotExist() {
         priceJpaRepository.findById("UNKNOWN").ifPresent(price -> priceJpaRepository.delete(price));
     }
+
+    @State("valid token")
+    public void validToken() {
+        // no-op, token validated by interceptor
+    }
+
+    @State("missing token")
+    public void missingToken() {
+        // no-op, interceptor will fail when token missing
+    }
 }

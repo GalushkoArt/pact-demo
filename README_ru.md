@@ -419,6 +419,9 @@ public void priceWithIdAaplExists() {
 5. **Используйте динамическое управление состоянием**
    - Создавайте тестовые данные динамически для каждого теста
    - Избегайте зависимости от предварительно существующих данных
+6. **Генерируйте безопасные идентификаторы тестовых данных**
+   - Используйте `TestDataFactory.randomInstrumentId()` для уникальных ID
+   - Для детерминированного режима задайте `-Dtest.deterministic=true`
 
 ## Распространенные проблемы и решения
 
@@ -458,8 +461,8 @@ public void priceWithIdAaplExists() {
   @State(value = "price with ID exists")
   public Map<String, String> priceWithIdExists() {
       var parameters = new HashMap<String, String>();
-      var instrumentId = parameters.computeIfAbsent("instrumentId", 
-          id -> RandomStringUtils.secure().nextAlphanumeric(4));
+      var instrumentId = parameters.computeIfAbsent("instrumentId",
+          id -> TestDataFactory.randomInstrumentId());
       // Код настройки с использованием instrumentId
       return parameters;
   }

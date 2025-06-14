@@ -28,7 +28,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import com.example.priceservice.util.TestDataFactory;
 
 /**
  * Provider side verification for Kafka price update messages.
@@ -77,7 +77,7 @@ public class PriceServiceProviderKafkaPactTest {
         // Build a representative domain object and convert it to the Kafka message
         // Создаем доменный объект и конвертируем его в Kafka-сообщение
         Price price = Price.builder()
-                .instrumentId(randomAlphabetic(4))
+                .instrumentId(TestDataFactory.randomInstrumentId())
                 .bidPrice(new BigDecimal("10"))
                 .askPrice(new BigDecimal("11"))
                 .lastUpdated(Instant.now())

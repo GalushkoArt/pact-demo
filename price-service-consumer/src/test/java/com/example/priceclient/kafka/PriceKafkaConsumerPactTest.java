@@ -16,6 +16,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,13 @@ import static au.com.dius.pact.consumer.dsl.LambdaDsl.newJsonBody;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
+/**
+ * Async consumer-side Pact test verifying Kafka JSON messages.
+ * Shows how a consumer can test message handlers.
+ * <p>
+ * Тест асинхронного потребителя Pact для Kafka сообщений в формате JSON.
+ * Демонстрирует, как потребитель может тестировать обработчики сообщений.
+ */
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "price-service-provider-kafka", providerType = ProviderType.ASYNCH, pactVersion = PactSpecVersion.V3)
 @SpringBootTest(properties = "spring.autoconfigure.exclude=net.devh.boot.grpc.client.autoconfigure.GrpcClientAutoConfiguration")
@@ -31,6 +40,11 @@ public class PriceKafkaConsumerPactTest {
     private PriceKafkaConsumer consumer;
     @Captor
     ArgumentCaptor<PriceUpdateMessage> priceUpdateCaptor;
+
+    public static final String ISO_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    // format has precision up to millis so we truncate to millis
+    // в формате точность до миллисекунд, поэтому мы обрезаем до миллисекунд
+    private static final Instant timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
     /**
      * Defines the contract for a single price update message.
@@ -49,11 +63,16 @@ public class PriceKafkaConsumerPactTest {
                     body.stringType("instrumentId", "AAPL");
                     body.numberType("bidPrice", 175.50);
                     body.numberType("askPrice", 175.75);
-                    body.stringMatcher("lastUpdated", ".+", "2024-01-01T00:00:00Z");
+                    body.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                 }).build())
                 .toPact();
     }
 
+    /**
+     * Verifies that the consumer can process the price update message.
+     * <p>
+     * Проверяет, что потребитель может обработать сообщение обновления цены.
+     */
     @Test
     @PactTestFor(pactMethod = "priceUpdatePact")
     void testConsumePriceUpdate(List<Message> messages) {
@@ -63,6 +82,6 @@ public class PriceKafkaConsumerPactTest {
         assertThat(value.getInstrumentId()).isEqualTo("AAPL");
         assertThat(value.getBidPrice()).isEqualTo(BigDecimal.valueOf(175.50));
         assertThat(value.getAskPrice()).isEqualTo(BigDecimal.valueOf(175.75));
-        assertThat(value.getLastUpdated()).isEqualTo("2024-01-01T00:00:00Z");
+        assertThat(value.getLastUpdated()).isEqualTo(timestamp);
     }
 }

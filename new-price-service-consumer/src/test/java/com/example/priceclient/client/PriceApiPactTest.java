@@ -17,8 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import static au.com.dius.pact.consumer.dsl.LambdaDsl.newJsonArrayMinLike;
 import static au.com.dius.pact.consumer.dsl.LambdaDsl.newJsonBody;
@@ -44,6 +47,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class PriceApiPactTest {
     @Autowired
     private PricesApi pricesApi;
+    public static final String ISO_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    // format has precision up to millis so we truncate to millis
+    // в формате точность до миллисекунд, поэтому мы обрезаем до миллисекунд
+    private static final Instant timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
     /**
      * Setup method to disable HTTP keep-alive for tests.
@@ -72,7 +79,6 @@ public class PriceApiPactTest {
      */
     @Pact(consumer = "new-price-service-consumer")
     public RequestResponsePact getAllPricesPact(PactDslWithProvider builder) {
-        var timestamp = Instant.now().toString();
         return builder
                 // Define the provider state - a key best practice
                 // Определение состояния поставщика - ключевая лучшая практика
@@ -83,38 +89,40 @@ public class PriceApiPactTest {
                 .willRespondWith()
                 .status(200)
                 // Using type matchers instead of exact values - recommended best practice
+                // Use check min like check for array
                 // Использование матчеров типов вместо точных значений - рекомендуемая лучшая практика
-                .body(newJsonArrayMinLike(1, array -> {
-                    array.object(o -> {
-                        o.stringType("instrumentId", "AAPL");
-                        o.decimalType("bidPrice", 175.50);
-                        o.decimalType("askPrice", 175.75);
-                        o.stringType("lastUpdated", timestamp);
-                    });
-                }).build())
+                // Используй проверки min like для массивов
+                .body(newJsonArrayMinLike(1, array -> array.object(o -> {
+                    o.stringType("instrumentId", "AAPL");
+                    //Prefer number type over decimal type cause requires floating point
+                    //Лучше выбирать number тип, нежили decimal, тк для decimal требует плавающую запятую
+                    o.numberType("bidPrice", 175.50);
+                    o.numberType("askPrice", 175.75);
+                    //Use date and datetime matchers for dates and timestamps strings
+                    //Используй date и datetime матчеры для строковых полей с датами и временами
+                    o.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
+                })).build())
                 .toPact();
     }
 
     /**
      * Tests the retrieval of all prices.
-     * Uses flexible assertions to verify response structure without exact values.
+     * Uses values from the contract to verify client logic
      * <p>
      * Тестирует получение всех цен.
-     * Использует гибкие утверждения для проверки структуры ответа без точных значений.
+     * Использует значения из контракта для проверки логики клиента.
      */
     @Test
     @PactTestFor(pactMethod = "getAllPricesPact")
     void testGetAllPrices() {
         List<PriceDto> prices = pricesApi.getAllPrices();
 
-        // Flexible assertions - verify structure without exact values
-        // Гибкие утверждения - проверка структуры без точных значений
         assertThat(prices).isNotNull();
         assertThat(prices.size()).isGreaterThanOrEqualTo(1);
-        assertThat(prices.get(0).getInstrumentId()).isNotNull();
-        assertThat(prices.get(0).getBidPrice()).isNotNull();
-        assertThat(prices.get(0).getAskPrice()).isNotNull();
-        assertThat(prices.get(0).getLastUpdated()).isNotNull();
+        assertThat(prices.get(0).getInstrumentId()).isEqualTo("AAPL");
+        assertThat(prices.get(0).getBidPrice()).isEqualTo(BigDecimal.valueOf(175.50));
+        assertThat(prices.get(0).getAskPrice()).isEqualTo(BigDecimal.valueOf(175.75));
+        assertThat(prices.get(0).getLastUpdated().toInstant()).isEqualTo(timestamp);
     }
 
     /**
@@ -129,11 +137,10 @@ public class PriceApiPactTest {
      */
     @Pact(consumer = "new-price-service-consumer")
     public RequestResponsePact getPricePact(PactDslWithProvider builder) {
-        var timestamp = Instant.now().toString();
         return builder
                 // Clear provider state definition
                 // Четкое определение состояния поставщика
-                .given("price with ID exists")
+                .given("price with ID exists", Map.of("instrumentId", "AAPL"))
                 .uponReceiving("a request for price with ID AAPL")
                 // Using provider state parameters for path
                 // Использование параметров состояния поставщика для пути
@@ -147,7 +154,7 @@ public class PriceApiPactTest {
                     body.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
                     body.decimalType("bidPrice", 175.50);
                     body.decimalType("askPrice", 175.75);
-                    body.stringType("lastUpdated", timestamp);
+                    body.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                 }).build())
                 .toPact();
     }
@@ -167,9 +174,9 @@ public class PriceApiPactTest {
         // Exact assertion for ID, flexible assertions for other fields
         // Точное утверждение для ID, гибкие утверждения для других полей
         assertThat(price.getInstrumentId()).isEqualTo("AAPL");
-        assertThat(price.getBidPrice()).isNotNull();
-        assertThat(price.getAskPrice()).isNotNull();
-        assertThat(price.getLastUpdated()).isNotNull();
+        assertThat(price.getBidPrice()).isEqualTo(BigDecimal.valueOf(175.50));
+        assertThat(price.getAskPrice()).isEqualTo(BigDecimal.valueOf(175.75));
+        assertThat(price.getLastUpdated().toInstant()).isEqualTo(timestamp);
     }
 
     /**

@@ -514,6 +514,14 @@ This ensures that the security requirements are properly verified through contra
 - Check for changes in the provider API that might break the contract
 - Update consumer tests if the API has changed intentionally
 
+### Bad Practices to Avoid
+
+1. **Over-Specifying Contracts** – Avoid matching on exact values when not necessary. Use type matchers instead.
+2. **Sharing Databases Between Tests** – Each state should create and clean up its own data to prevent brittle tests.
+3. **Skipping Error Scenarios** – Always include negative cases like 404 or authentication failures.
+
+These anti-patterns often lead to flaky tests and unreliable contracts.
+
 ## When to Use Pact vs. Other Testing
 
 - **Unit Tests**: For testing business logic in isolation

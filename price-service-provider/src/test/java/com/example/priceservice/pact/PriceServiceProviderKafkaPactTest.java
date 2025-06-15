@@ -14,6 +14,7 @@ import au.com.dius.pact.provider.junitsupport.loader.*;
 import com.example.priceservice.config.JacksonConfig;
 import com.example.priceservice.domain.model.Price;
 import com.example.priceservice.domain.model.PriceUpdateMessage;
+import com.example.priceservice.util.TestDataFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,10 +29,12 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.example.priceservice.util.TestDataFactory;
-
 /**
  * Provider side verification for Kafka price update messages.
+ * Demonstrates asynchronous message contract testing.
+ * <p>
+ * Проверка контрактов Kafka на стороне поставщика.
+ * Показывает тестирование асинхронных сообщений.
  */
 @Provider("price-service-provider-kafka")
 @PactBroker(
@@ -48,6 +51,13 @@ public class PriceServiceProviderKafkaPactTest {
     @Autowired
     private ObjectMapper mapper;
 
+    /**
+     * Selects consumer versions to verify.
+     * Keeping the provider in sync with consumer branches is recommended.
+     * <p>
+     * Выбор версий потребителей для проверки.
+     * Позволяет держать поставщика синхронным с ветками потребителей.
+     */
     @PactBrokerConsumerVersionSelectors
     public static SelectorBuilder consumerVersionSelectors() {
         return new SelectorBuilder()
@@ -55,23 +65,45 @@ public class PriceServiceProviderKafkaPactTest {
                 .latestTag("dev");
     }
 
+    /**
+     * Template method invoked for each Pact interaction.
+     * <p>
+     * Шаблонный метод, вызываемый для каждой Pact-итерации.
+     */
     @TestTemplate
     @ExtendWith(PactVerificationInvocationContextProvider.class)
     void testTemplate(Pact pact, Interaction interaction, PactVerificationContext context) {
         context.verifyInteraction();
     }
 
+    /**
+     * Configure the message test target before verification.
+     * <p>
+     * Настраивает MessageTestTarget перед проверкой.
+     */
     @BeforeEach
     void before(PactVerificationContext context) {
         context.setTarget(new MessageTestTarget());
     }
 
+    /**
+     * Provider state for an existing price update event.
+     * Keeping state setup minimal reduces test fragility.
+     * <p>
+     * Состояние поставщика для события обновления цены.
+     * Минимальная подготовка состояния снижает хрупкость тестов.
+     */
     @State(value = "price update event", action = StateChangeAction.SETUP)
     public Map<String, String> priceUpdateExists() {
         return new HashMap<>();
     }
 
     //Try not to duplicate provider name across providers
+    /**
+     * Creates the message that is published by the provider.
+     * <p>
+     * Создает сообщение, публикуемое поставщиком.
+     */
     @PactVerifyProvider("price updated")
     public MessageAndMetadata verifyPriceUpdatedMessage() throws JsonProcessingException {
         // Build a representative domain object and convert it to the Kafka message

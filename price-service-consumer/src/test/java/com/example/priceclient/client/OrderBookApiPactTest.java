@@ -20,10 +20,11 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 import static au.com.dius.pact.consumer.dsl.LambdaDsl.newJsonBody;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +59,10 @@ public class OrderBookApiPactTest {
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "password";
     private static final String AUTH_HEADER = "Basic " + Base64.getEncoder().encodeToString((USERNAME + ":" + PASSWORD).getBytes());
+    public static final String ISO_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+    // format has precision up to millis so we truncate to millis
+    // в формате точность до миллисекунд, поэтому мы обрезаем до миллисекунд
+    private static final Instant timestamp = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
     /**
      * Setup method to disable HTTP keep-alive for tests.
@@ -86,11 +91,10 @@ public class OrderBookApiPactTest {
      */
     @Pact(consumer = "price-service-consumer")
     public RequestResponsePact getOrderBookPact(PactDslWithProvider builder) {
-        var timestamp = Instant.now().toString();
         return builder
                 // Define provider state
                 // Определение состояния поставщика
-                .given("order book with ID exists")
+                .given("order book with ID exists", Map.of("instrumentId", "AAPL"))
                 .uponReceiving("a request for order book with ID AAPL")
                 .pathFromProviderState("/orderbook/${instrumentId}", "/orderbook/AAPL")
                 .method("GET")
@@ -99,8 +103,10 @@ public class OrderBookApiPactTest {
                 // Using type matchers for response body
                 // Использование матчеры типов для тела ответа
                 .body(newJsonBody(o -> {
-                    o.stringType("lastUpdated", timestamp);
+                    o.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                     o.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
+                    // Matches that array fields have the proper structure of elements and generate two examples for consumer
+                    // Матчер для проверки, что элементы массива имеют нужную структуру и генерирует два экземпляра для консьюмера
                     o.eachLike("bidOrders", 2, bid -> {
                         bid.numberType("price", 175.50);
                         bid.numberType("volume", 100.0);
@@ -128,7 +134,11 @@ public class OrderBookApiPactTest {
         assertThat(orderBook.getInstrumentId()).isEqualTo("AAPL");
         assertThat(orderBook.getBidOrders()).hasSize(2);
         assertThat(orderBook.getAskOrders()).hasSize(2);
-        assertThat(orderBook.getLastUpdated()).isNotNull();
+        assertThat(orderBook.getLastUpdated().toInstant()).isEqualTo(timestamp);
+        assertThat(orderBook.getBidOrders().getFirst().getPrice()).isEqualByComparingTo(BigDecimal.valueOf(175.50));
+        assertThat(orderBook.getBidOrders().getFirst().getVolume()).isEqualByComparingTo(BigDecimal.valueOf(100.0));
+        assertThat(orderBook.getAskOrders().getFirst().getPrice()).isEqualByComparingTo(BigDecimal.valueOf(175.75));
+        assertThat(orderBook.getAskOrders().getFirst().getVolume()).isEqualByComparingTo(BigDecimal.valueOf(150.0));
     }
 
     /**
@@ -179,9 +189,8 @@ public class OrderBookApiPactTest {
      */
     @Pact(consumer = "price-service-consumer")
     public RequestResponsePact saveOrderBookPact(PactDslWithProvider builder) {
-        var timestamp = Instant.now().toString();
         return builder
-                .given("order book can be saved")
+                .given("order book can be saved", Map.of("instrumentId", "AAPL"))
                 .uponReceiving("an authenticated request to save order book for AAPL")
                 .pathFromProviderState("/orderbook/${instrumentId}", "/orderbook/AAPL")
                 .method("POST")
@@ -190,7 +199,7 @@ public class OrderBookApiPactTest {
                 // Включение заголовка аутентификации - лучшая практика для защищенных конечных точек
                 .headers("Authorization", AUTH_HEADER)
                 .body(newJsonBody(o -> {
-                    o.stringType("lastUpdated", timestamp);
+                    o.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                     o.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
                     o.eachLike("bidOrders", 2, bid -> {
                         bid.numberType("price", 176.50);
@@ -204,7 +213,9 @@ public class OrderBookApiPactTest {
                 .willRespondWith()
                 .status(200)
                 .body(newJsonBody(o -> {
-                    o.stringType("lastUpdated", timestamp);
+                    // If the consumer doesn't need fields from the response body, you can remove checking and use only JSON body check
+                    // Если потребителю не нужны поля из тела ответа, то убрать их проверки и использовать только проверку на JSON тело
+                    o.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                     o.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
                     o.eachLike("bidOrders", 2, bid -> {
                         bid.numberType("price", 176.50);
@@ -228,26 +239,26 @@ public class OrderBookApiPactTest {
     @Test
     @PactTestFor(pactMethod = "saveOrderBookPact")
     void testSaveOrderBook() {
-        OrderBookDto orderBookDto = new OrderBookDto();
-        orderBookDto.setInstrumentId("AAPL");
-
-        List<OrderDto> bidOrders = new ArrayList<>();
-        bidOrders.add(createOrderDto(new BigDecimal("176.50"), new BigDecimal("120.0")));
-        bidOrders.add(createOrderDto(new BigDecimal("176.45"), new BigDecimal("220.0")));
-        orderBookDto.setBidOrders(bidOrders);
-
-        List<OrderDto> askOrders = new ArrayList<>();
-        askOrders.add(createOrderDto(new BigDecimal("176.75"), new BigDecimal("170.0")));
-        askOrders.add(createOrderDto(new BigDecimal("176.80"), new BigDecimal("270.0")));
-        orderBookDto.setAskOrders(askOrders);
-
-        orderBookDto.setLastUpdated(OffsetDateTime.now());
+        OrderBookDto orderBookDto = new OrderBookDto()
+                .instrumentId("AAPL")
+                .bidOrders(List.of(
+                        createOrderDto(new BigDecimal("176.50"), new BigDecimal("120.0")),
+                        createOrderDto(new BigDecimal("176.45"), new BigDecimal("220.0"))
+                )).askOrders(List.of(
+                        createOrderDto(new BigDecimal("176.75"), new BigDecimal("170.0")),
+                        createOrderDto(new BigDecimal("176.80"), new BigDecimal("270.0"))
+                )).lastUpdated(timestamp.atOffset(ZoneOffset.UTC));
 
         var savedOrderBook = orderBookApi.saveOrderBook(orderBookDto.getInstrumentId(), orderBookDto);
 
         assertThat(savedOrderBook.getInstrumentId()).isEqualTo("AAPL");
         assertThat(savedOrderBook.getBidOrders()).hasSize(2);
         assertThat(savedOrderBook.getAskOrders()).hasSize(2);
+        assertThat(savedOrderBook.getLastUpdated().toInstant()).isEqualTo(timestamp);
+        assertThat(savedOrderBook.getBidOrders().getFirst().getPrice()).isEqualByComparingTo(BigDecimal.valueOf(176.50));
+        assertThat(savedOrderBook.getBidOrders().getFirst().getVolume()).isEqualByComparingTo(BigDecimal.valueOf(120.0));
+        assertThat(savedOrderBook.getAskOrders().getFirst().getPrice()).isEqualByComparingTo(BigDecimal.valueOf(176.75));
+        assertThat(savedOrderBook.getAskOrders().getFirst().getVolume()).isEqualByComparingTo(BigDecimal.valueOf(170.0));
     }
 
     /**
@@ -262,7 +273,6 @@ public class OrderBookApiPactTest {
      */
     @Pact(consumer = "price-service-consumer")
     public RequestResponsePact saveOrderBookWithWrongAuthPact(PactDslWithProvider builder) {
-        var timestamp = Instant.now().toString();
         return builder
                 .given("order book can be saved")
                 .uponReceiving("an unauthenticated request to save order book")
@@ -273,7 +283,7 @@ public class OrderBookApiPactTest {
                 // Намеренное опускание заголовка аутентификации для тестирования ответа 401
                 .body(newJsonBody(o -> {
                     o.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
-                    o.stringType("lastUpdated", timestamp);
+                    o.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                     o.eachLike("bidOrders", 2, bid -> {
                         bid.numberType("price", 176.50);
                         bid.numberType("volume", 120.0);
@@ -298,18 +308,13 @@ public class OrderBookApiPactTest {
     @Test
     @PactTestFor(pactMethod = "saveOrderBookWithWrongAuthPact")
     void testSaveOrderBookWithoutAuth() {
-        OrderBookDto orderBookDto = new OrderBookDto();
-        orderBookDto.setInstrumentId("AAPL");
-
-        List<OrderDto> bidOrders = new ArrayList<>();
-        bidOrders.add(createOrderDto(new BigDecimal("176.50"), new BigDecimal("120.0")));
-        orderBookDto.setBidOrders(bidOrders);
-
-        List<OrderDto> askOrders = new ArrayList<>();
-        askOrders.add(createOrderDto(new BigDecimal("176.75"), new BigDecimal("170.0")));
-        orderBookDto.setAskOrders(askOrders);
-
-        orderBookDto.setLastUpdated(OffsetDateTime.now());
+        OrderBookDto orderBookDto = new OrderBookDto()
+                .instrumentId("AAPL")
+                .bidOrders(List.of(
+                        createOrderDto(new BigDecimal("176.50"), new BigDecimal("120.0"))
+                )).askOrders(List.of(
+                        createOrderDto(new BigDecimal("176.75"), new BigDecimal("170.0"))
+                )).lastUpdated(timestamp.atOffset(ZoneOffset.UTC));
 
         assertThatThrownBy(() -> orderBookApi.saveOrderBook(orderBookDto.getInstrumentId(), orderBookDto))
                 .isInstanceOf(HttpClientErrorException.Unauthorized.class);
@@ -320,7 +325,7 @@ public class OrderBookApiPactTest {
      * <p>
      * Вспомогательный метод для создания DTO заказов для тестирования.
      *
-     * @param price The order price
+     * @param price  The order price
      * @param volume The order volume
      * @return A new OrderDto instance
      */

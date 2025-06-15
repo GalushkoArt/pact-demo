@@ -20,13 +20,22 @@ import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
 import static au.com.dius.pact.consumer.dsl.PactBuilder.filePath;
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Consumer Pact tests for the gRPC PriceService.
+ * Uses the Pact gRPC plugin for request/response message verification.
+ * <p>
+ * Тесты потребителя Pact для gRPC сервиса PriceService.
+ * Использует плагин Pact gRPC для проверки сообщений.
+ */
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "price-service-provider-grpc", providerType = ProviderType.SYNCH_MESSAGE, pactVersion = PactSpecVersion.V4)
 @MockServerConfig(
@@ -34,7 +43,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         registryEntry = "protobuf/transport/grpc"
 )
 public class GrpcPriceServicePactTest {
+    private static final Instant timestamp = Instant.now();
 
+    /**
+     * Defines a contract for the GetAllPrices gRPC call.
+     * <p>
+     * Определяет контракт для gRPC вызова GetAllPrices.
+     *
+     * @see <a href=https://github.com/pact-foundation/pact-plugins/blob/main/docs/matching-rule-definition-expressions.md>link to matchers docs/ссылка на документацию по матчерам</a>
+     */
     @Pact(consumer = "price-service-consumer")
     public V4Pact getAllPricesPact(PactBuilder builder) {
         return builder
@@ -57,6 +74,8 @@ public class GrpcPriceServicePactTest {
                                         "instrument_id", "matching(type, 'AAPL')",
                                         "bid_price", "matching(number, 175.50)",
                                         "ask_price", "matching(number, 175.75)"
+                                        // by proto definition there is last_updated field, but we don't need it, so we skipped it
+                                        // в определении прото договора есть поле last_updated, но оно нам не нужно, поэтому мы его пропустили
                                 )),
                                 "page", "matching(number, 1)",
                                 "size", "matching(number, 1)"
@@ -65,6 +84,11 @@ public class GrpcPriceServicePactTest {
                 .toPact();
     }
 
+    /**
+     * Tests the GetAllPrices call using the Pact mock server.
+     * <p>
+     * Тестирует вызов GetAllPrices через Pact mock server.
+     */
     @Test
     @PactTestFor(pactMethod = "getAllPricesPact", providerType = ProviderType.SYNCH_MESSAGE)
     void testGetAllPrices(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
@@ -75,12 +99,16 @@ public class GrpcPriceServicePactTest {
         assertThat(response.getSize()).isEqualTo(1);
         List<Price> allPrices = response.getPricesList();
         assertThat(allPrices).hasSize(1);
-        assertThat(allPrices.get(0).getInstrumentId()).isEqualTo("AAPL");
-        assertThat(allPrices.get(0).getBidPrice()).isEqualTo(175.50);
-        assertThat(allPrices.get(0).getAskPrice()).isEqualTo(175.75);
-        assertThat(allPrices.get(0).getLastUpdated()).isNotNull();
+        assertThat(allPrices.getFirst().getInstrumentId()).isEqualTo("AAPL");
+        assertThat(allPrices.getFirst().getBidPrice()).isEqualTo(175.50);
+        assertThat(allPrices.getFirst().getAskPrice()).isEqualTo(175.75);
     }
 
+    /**
+     * Defines a contract for the GetPrice gRPC call with a valid ID.
+     * <p>
+     * Определяет контракт для gRPC вызова GetPrice с существующим ID.
+     */
     @Pact(consumer = "price-service-consumer")
     public V4Pact getPricePact(PactBuilder builder) {
         return builder
@@ -102,13 +130,22 @@ public class GrpcPriceServicePactTest {
                                 "price", Map.of(
                                         "instrument_id", "AAPL",
                                         "bid_price", "matching(number, 175.50)",
-                                        "ask_price", "matching(number, 175.75)"
+                                        "ask_price", "matching(number, 175.75)",
+                                        "last_updated", Map.of(
+                                                "seconds", format("matching(integer, %d)", timestamp.getEpochSecond()),
+                                                "nanos", format("matching(integer, %d)", timestamp.getNano())
+                                        )
                                 )
                         ))
                 ))
                 .toPact();
     }
 
+    /**
+     * Tests successful retrieval of a price over gRPC.
+     * <p>
+     * Тестирует успешное получение цены по gRPC.
+     */
     @Test
     @PactTestFor(pactMethod = "getPricePact", providerType = ProviderType.SYNCH_MESSAGE)
     void testGetPrice(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
@@ -118,9 +155,15 @@ public class GrpcPriceServicePactTest {
         assertThat(price.get().getInstrumentId()).isEqualTo("AAPL");
         assertThat(price.get().getBidPrice()).isEqualTo(175.50);
         assertThat(price.get().getAskPrice()).isEqualTo(175.75);
-        assertThat(price.get().getLastUpdated()).isNotNull();
+        assertThat(price.get().getLastUpdated().getSeconds()).isEqualTo(timestamp.getEpochSecond());
+        assertThat(price.get().getLastUpdated().getNanos()).isEqualTo(timestamp.getNano());
     }
 
+    /**
+     * Contract for the NOT_FOUND gRPC response.
+     * <p>
+     * Контракт для сценария, когда цена не найдена.
+     */
     @Pact(consumer = "price-service-consumer")
     public V4Pact getPriceNotFoundPact(PactBuilder builder) {
         return builder
@@ -143,6 +186,11 @@ public class GrpcPriceServicePactTest {
                 .toPact();
     }
 
+    /**
+     * Tests the not-found case for the GetPrice call.
+     * <p>
+     * Тестирует случай отсутствия цены в сервисе.
+     */
     @Test
     @PactTestFor(pactMethod = "getPriceNotFoundPact", providerType = ProviderType.SYNCH_MESSAGE)
     void testGetPriceNotFound(MockServer mockServer, V4Interaction.SynchronousMessages interaction) {
@@ -150,6 +198,11 @@ public class GrpcPriceServicePactTest {
         assertThat(price).isEmpty();
     }
 
+    /**
+     * Contract for requests missing the authentication token.
+     * <p>
+     * Контракт для запроса без токена аутентификации.
+     */
     @Pact(consumer = "price-service-consumer")
     public V4Pact missingTokenPact(PactBuilder builder) {
         return builder
@@ -172,6 +225,11 @@ public class GrpcPriceServicePactTest {
                 .toPact();
     }
 
+    /**
+     * Tests missing-token scenario and expects UNAUTHENTICATED status.
+     * <p>
+     * Тестирует сценарий отсутствующего токена и ожидает статус UNAUTHENTICATED.
+     */
     @Test
     @PactTestFor(pactMethod = "missingTokenPact", providerType = ProviderType.SYNCH_MESSAGE)
     void testMissingToken(MockServer mockServer) {
@@ -180,6 +238,11 @@ public class GrpcPriceServicePactTest {
                 .matches(e -> ((StatusRuntimeException) e).getStatus().getCode() == Status.Code.UNAUTHENTICATED);
     }
 
+    /**
+     * Helper to create a gRPC client connected to the Pact mock server.
+     * <p>
+     * Вспомогательный метод для создания gRPC клиента, подключенного к mock-серверу Pact.
+     */
     private GrpcPriceClient getClient(MockServer mockServer) {
         ManagedChannel channel = ManagedChannelBuilder.forTarget("127.0.0.1:" + mockServer.getPort())
                 .usePlaintext()

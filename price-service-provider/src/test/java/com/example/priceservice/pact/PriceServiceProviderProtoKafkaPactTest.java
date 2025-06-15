@@ -14,6 +14,7 @@ import au.com.dius.pact.provider.junitsupport.loader.*;
 import com.example.priceservice.grpc.Price;
 import com.example.priceservice.grpc.PriceUpdate;
 import com.example.priceservice.grpc.UpdateType;
+import com.example.priceservice.util.TestDataFactory;
 import com.google.protobuf.Timestamp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
@@ -23,10 +24,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.example.priceservice.util.TestDataFactory;
-
 /**
  * Provider verification for protobuf Kafka price update messages.
+ * Demonstrates the use of the Pact protobuf plugin.
+ * <p>
+ * Проверка сообщений Kafka в формате protobuf.
+ * Показывает использование плагина Pact protobuf.
  */
 @Provider("price-service-provider-kafka-proto")
 @PactBroker(
@@ -38,6 +41,11 @@ import com.example.priceservice.util.TestDataFactory;
 @SpringBootTest
 public class PriceServiceProviderProtoKafkaPactTest {
 
+    /**
+     * Selects the consumer versions to verify.
+     * <p>
+     * Выбор версий потребителей для проверки.
+     */
     @PactBrokerConsumerVersionSelectors
     public static SelectorBuilder consumerVersionSelectors() {
         return new SelectorBuilder()
@@ -45,23 +53,43 @@ public class PriceServiceProviderProtoKafkaPactTest {
                 .latestTag("dev");
     }
 
+    /**
+     * Template method to trigger verification of each interaction.
+     * <p>
+     * Шаблонный метод для проверки каждого взаимодействия.
+     */
     @TestTemplate
     @ExtendWith(PactVerificationInvocationContextProvider.class)
     void testTemplate(Pact pact, Interaction interaction, PactVerificationContext context) {
         context.verifyInteraction();
     }
 
+    /**
+     * Configure the message test target before verification.
+     * <p>
+     * Настраивает MessageTestTarget перед проверкой.
+     */
     @BeforeEach
     void before(PactVerificationContext context) {
         context.setTarget(new MessageTestTarget());
     }
 
+    /**
+     * Provider state for an existing protobuf price update.
+     * <p>
+     * Состояние поставщика для существующего события обновления цены в protobuf.
+     */
     @State(value = "price update event", action = StateChangeAction.SETUP)
     public Map<String, String> priceUpdateExists() {
         return new HashMap<>();
     }
 
     //Try not to duplicate provider name across providers
+    /**
+     * Builds the protobuf message published by the provider.
+     * <p>
+     * Создает protobuf-сообщение, публикуемое поставщиком.
+     */
     @PactVerifyProvider("proto price updated")
     public MessageAndMetadata verifyPriceUpdatedMessage() {
         Price priceMsg = Price.newBuilder()

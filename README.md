@@ -2,8 +2,7 @@
 
 This project demonstrates Pact-based contract testing in a microservices architecture, focusing on a price service domain with REST API communication between provider and consumer services.
 
-Check [the article about implementing contract test](Implementing%20Contract%20Testing%20with%20Pact%20in%20Java%20Spring%20Applications.md) out
-after finishing reading README
+Check [docs](docs) out after finishing reading README
 
 ## Project Overview
 
@@ -556,7 +555,7 @@ Pact is particularly valuable when:
 
 ## More to read
 
-Check [the article about implementing contract test](Implementing%20Contract%20Testing%20with%20Pact%20in%20Java%20Spring%20Applications.md) out
+Check [docs](docs) out
 
 ### Documentation and Guides
 

@@ -27,11 +27,11 @@ As Pact has been implemented in many different languages, this document will out
 
 1. [Get Prepared - learn about pact](pact_nirvana/step_1)
 2. [Talk: get team alignment](pact_nirvana/step_2)
-3. Bronze level: get a single test working manually
-4. Silver level: manually integrate with Pact Broker
-5. Gold level - integrate with your PR pipelines
-6. Platinum level: Add can-i-deploy with branch tag to PR pipelines
-7. Diamond level - Add Pact to your deploy pipelines
+3. [Bronze level: get a single test working manually](pact_nirvana/step_3)
+4. [Silver level: manually integrate with Pact Broker](pact_nirvana/step_4)
+5. [Gold level - integrate with your PR pipelines](pact_nirvana/step_5)
+6. [Platinum level: Add can-i-deploy with branch tag to PR pipelines](pact_nirvana/step_6)
+7. [Diamond level - Add Pact to your deploy pipelines](pact_nirvana/step_7)
 8. Honors Course - To come in future...
     1. Add provider state
     2. Working with Feature Flags

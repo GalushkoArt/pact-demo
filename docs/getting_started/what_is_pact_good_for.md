@@ -72,4 +72,4 @@ generation and matching code to test non-HTTP communications.
 
 ## If you are unsure
 
-If you're unsure whether Pact will be valuable for your team, read [this page](../faq/convinceme.md).
+If you're unsure whether Pact will be valuable for your team, read [this page](../faq/convinceme).

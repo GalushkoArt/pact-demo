@@ -246,7 +246,7 @@ public class PriceApiPactTest {
                 .method("POST")
                 // Including authentication header - best practice for secured endpoints
                 // Включение заголовка аутентификации - лучшая практика для защищенных конечных точек
-                .headers("Authorization", AUTH_HEADER)
+                .headerFromProviderState("Authorization", "Basic ${basicAuth}", AUTH_HEADER)
                 .headers("Content-Type", "application/json")
                 .body(newJsonBody(body -> {
                     body.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");
@@ -361,7 +361,7 @@ public class PriceApiPactTest {
                 .method("DELETE")
                 // Including authentication header for secured endpoint
                 // Включение заголовка аутентификации для защищенной конечной точки
-                .headers("Authorization", AUTH_HEADER)
+                .headerFromProviderState("Authorization", "Basic ${basicAuth}", AUTH_HEADER)
                 .willRespondWith(response -> response.status(204))
                 .toPact();
     }

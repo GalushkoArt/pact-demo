@@ -197,7 +197,7 @@ public class OrderBookApiPactTest {
                 .headers("Content-Type", "application/json")
                 // Including authentication header - best practice for secured endpoints
                 // Включение заголовка аутентификации - лучшая практика для защищенных конечных точек
-                .headers("Authorization", AUTH_HEADER)
+                .headerFromProviderState("Authorization", "Basic ${basicAuth}", AUTH_HEADER)
                 .body(newJsonBody(o -> {
                     o.datetime("lastUpdated", ISO_DATE_TIME_FORMAT, timestamp);
                     o.valueFromProviderState("instrumentId", "${instrumentId}", "AAPL");

@@ -63,7 +63,7 @@ public class GrpcPriceServicePactTest {
                         "pact:proto", filePath("../proto/price_service.proto"),
                         "pact:content-type", "application/grpc",
                         "pact:proto-service", "PriceService/GetAllPrices",
-                        "requestMetadata", Map.of("authorization", "Bearer valid-token"),
+                        "requestMetadata", Map.of("authorization", "matching(regex, 'Bearer [\\w-]{6,}', 'Bearer valid-token')"),
                         "responseMetadata", Map.of(
                                 "x-authenticated", "matching(type, 'true')"
                         ),
@@ -119,7 +119,7 @@ public class GrpcPriceServicePactTest {
                         "pact:proto", filePath("../proto/price_service.proto"),
                         "pact:content-type", "application/grpc",
                         "pact:proto-service", "PriceService/GetPrice",
-                        "requestMetadata", Map.of("authorization", "Bearer valid-token"),
+                        "requestMetadata", Map.of("authorization", "matching(regex, 'Bearer [\\w-]{6,}', 'Bearer valid-token')"),
                         "responseMetadata", Map.of(
                                 "x-authenticated", "matching(type, 'true')"
                         ),
@@ -174,7 +174,7 @@ public class GrpcPriceServicePactTest {
                         "pact:proto", filePath("../proto/price_service.proto"),
                         "pact:content-type", "application/grpc",
                         "pact:proto-service", "PriceService/GetPrice",
-                        "requestMetadata", Map.of("authorization", "Bearer valid-token"),
+                        "requestMetadata", Map.of("authorization", "matching(regex, 'Bearer [\\w-]{6,}', 'Bearer valid-token')"),
                         "request", Map.of(
                                 "instrument_id", "UNKNOWN"
                         ),
